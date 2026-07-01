@@ -323,6 +323,11 @@ h3 {
   font-weight: 900;
 }
 
+.operations-row select {
+  min-height: 34px;
+  padding: 4px 8px;
+}
+
 .operations-head {
   background: #000080;
   color: #ffffff;

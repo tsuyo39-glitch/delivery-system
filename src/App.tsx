@@ -591,10 +591,29 @@ export function App() {
       return;
     }
 
+    updateDriverStatusForDelivery(selectedDeliveryId, status);
+  }
+
+  function updateDriverStatusForDelivery(deliveryId: string, status: DeliveryStatus) {
     const now = new Date().toISOString();
-    setDriverReports((current) =>
-      current.map((report) =>
-        report.deliveryId === selectedDeliveryId
+    setDriverReports((current) => {
+      const hasReport = current.some((report) => report.deliveryId === deliveryId);
+      if (!hasReport) {
+        return [
+          ...current,
+          {
+            deliveryId,
+            status,
+            ...createMockPosition(deliveryId),
+            lastSyncedAt: now,
+            lastReportedAt: now,
+            history: [{ status, reportedAt: now }],
+          },
+        ];
+      }
+
+      return current.map((report) =>
+        report.deliveryId === deliveryId
           ? {
               ...report,
               status,
@@ -603,8 +622,8 @@ export function App() {
               history: [...(report.history ?? []), { status, reportedAt: now }],
             }
           : report,
-      ),
-    );
+      );
+    });
   }
 
   function refreshDriverPosition() {
@@ -872,7 +891,25 @@ export function App() {
                       <div className="operations-row" key={row.delivery.id} role="row">
                         <span>{row.delivery.date}</span>
                         <strong>{row.truck?.driverName ?? '未設定'}</strong>
-                        <span>{statusLabels[row.report.status]}</span>
+                        <span>
+                          <select
+                            aria-label="運行ステータス"
+                            value={row.report.status}
+                            onChange={(event) =>
+                              updateDriverStatusForDelivery(
+                                row.delivery.id,
+                                event.target.value as DeliveryStatus,
+                              )
+                            }
+                          >
+                            <option value="not_started">{statusLabels.not_started}</option>
+                            {statusOrder.map((status) => (
+                              <option key={status} value={status}>
+                                {statusLabels[status]}
+                              </option>
+                            ))}
+                          </select>
+                        </span>
                         <span>
                           {row.simulation ? `${formatMinutes(row.simulation.etaMinutes)} / ${row.simulation.costYen.toLocaleString()}円` : '未計算'}
                         </span>

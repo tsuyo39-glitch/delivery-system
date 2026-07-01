@@ -425,6 +425,78 @@ h3 {
   font-weight: 900;
 }
 
+.data-management-content {
+  display: grid;
+  gap: 16px;
+  padding: 16px;
+}
+
+.backup-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.backup-summary-grid div {
+  border: 1px solid #000080;
+  padding: 12px;
+  background: #ffffff;
+}
+
+.backup-summary-grid span {
+  display: block;
+  color: #000080;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.backup-summary-grid strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 26px;
+}
+
+.backup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.backup-actions button {
+  border: 2px solid #000080;
+  background: #000080;
+  color: #ffffff;
+  padding: 10px 14px;
+  font-weight: 900;
+}
+
+.backup-message {
+  border: 1px solid #000080;
+  margin: 0;
+  padding: 12px;
+  background: #f7f9ff;
+  color: #000080;
+  font-weight: 800;
+}
+
+.backup-editor {
+  display: grid;
+  gap: 8px;
+  color: #000080;
+  font-weight: 900;
+}
+
+.backup-editor textarea {
+  min-height: 360px;
+  border: 2px solid #000080;
+  padding: 12px;
+  color: #111111;
+  font-family: "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
 .driver-workspace {
   display: grid;
   grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
@@ -1116,7 +1188,8 @@ button:focus-visible {
 
   .api-status-grid,
   .api-signal-layout,
-  .api-signal-panel {
+  .api-signal-panel,
+  .backup-summary-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1187,7 +1260,8 @@ button:focus-visible {
 
   .api-status-grid,
   .api-signal-layout,
-  .api-signal-panel {
+  .api-signal-panel,
+  .backup-summary-grid {
     grid-template-columns: 1fr;
   }
 

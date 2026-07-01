@@ -8,6 +8,7 @@ import {
   MapPin,
   Navigation,
   CloudSun,
+  Database,
   Sparkles,
   Plus,
   Route,
@@ -53,8 +54,17 @@ type DeliveryForm = {
 
 type TruckForm = Omit<Truck, 'id'>;
 type LocationForm = Omit<Location, 'id'>;
-type ActiveView = 'dashboard' | 'planning' | 'driver' | 'api' | 'trucks' | 'locations';
+type ActiveView = 'dashboard' | 'planning' | 'driver' | 'api' | 'data' | 'trucks' | 'locations';
 type DashboardFilter = 'all' | 'running' | 'completed' | 'weatherRisk';
+type BackupPayload = {
+  version: 1;
+  exportedAt: string;
+  trucks: Truck[];
+  locations: Location[];
+  deliveries: Delivery[];
+  deliveryRoutes: DeliveryRoute[];
+  driverReports: DriverReport[];
+};
 type IntegrityIssue = {
   id: string;
   message: string;
@@ -177,6 +187,8 @@ export function App() {
   const [optimizationNote, setOptimizationNote] = useState('ドライバー傾向を加味した推奨順序を生成できます。');
   const [truckSearch, setTruckSearch] = useState('');
   const [locationSearch, setLocationSearch] = useState('');
+  const [backupText, setBackupText] = useState('');
+  const [backupMessage, setBackupMessage] = useState('エクスポートまたは復元を実行してください。');
 
   const departureLocations = useMemo(
     () => masterLocations.filter((location) => location.type === 'departure'),
@@ -747,6 +759,48 @@ export function App() {
     setMasterLocations((current) => current.filter((location) => location.id !== locationId));
   }
 
+  function exportBackup() {
+    const payload: BackupPayload = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      trucks: masterTrucks,
+      locations: masterLocations,
+      deliveries,
+      deliveryRoutes,
+      driverReports,
+    };
+
+    setBackupText(JSON.stringify(payload, null, 2));
+    setBackupMessage('現在のデータをJSONとしてエクスポートしました。');
+  }
+
+  function importBackup() {
+    try {
+      const payload = JSON.parse(backupText) as Partial<BackupPayload>;
+      if (
+        payload.version !== 1 ||
+        !Array.isArray(payload.trucks) ||
+        !Array.isArray(payload.locations) ||
+        !Array.isArray(payload.deliveries) ||
+        !Array.isArray(payload.deliveryRoutes) ||
+        !Array.isArray(payload.driverReports)
+      ) {
+        setBackupMessage('復元できません。バックアップJSONの形式を確認してください。');
+        return;
+      }
+
+      setMasterTrucks(payload.trucks);
+      setMasterLocations(payload.locations);
+      setDeliveries(payload.deliveries);
+      setDeliveryRoutes(payload.deliveryRoutes);
+      setDriverReports(payload.driverReports);
+      setSelectedDeliveryId(payload.deliveries[0]?.id ?? '');
+      setBackupMessage('バックアップJSONからデータを復元しました。');
+    } catch {
+      setBackupMessage('JSONを読み込めません。内容を確認してください。');
+    }
+  }
+
   return (
     <main className="app-shell">
       <header className="top-bar">
@@ -803,6 +857,14 @@ export function App() {
           >
             <CloudSun aria-hidden="true" size={18} />
             <span>外部API連携</span>
+          </button>
+          <button
+            className={activeView === 'data' ? 'menu-item is-active' : 'menu-item'}
+            type="button"
+            onClick={() => setActiveView('data')}
+          >
+            <Database aria-hidden="true" size={18} />
+            <span>データ管理</span>
           </button>
           <button
             className={activeView === 'locations' ? 'menu-item is-active' : 'menu-item'}
@@ -1596,6 +1658,60 @@ export function App() {
                   </div>
                 </div>
               </section>
+            </section>
+          )}
+
+          {activeView === 'data' && (
+            <section className="panel data-management-panel">
+              <div className="panel-heading">
+                <Database aria-hidden="true" size={20} />
+                <h2>データ管理</h2>
+              </div>
+
+              <div className="data-management-content">
+                <div className="backup-summary-grid">
+                  <div>
+                    <span>トラック</span>
+                    <strong>{masterTrucks.length}</strong>
+                  </div>
+                  <div>
+                    <span>拠点</span>
+                    <strong>{masterLocations.length}</strong>
+                  </div>
+                  <div>
+                    <span>配車</span>
+                    <strong>{deliveries.length}</strong>
+                  </div>
+                  <div>
+                    <span>ルート</span>
+                    <strong>{deliveryRoutes.length}</strong>
+                  </div>
+                  <div>
+                    <span>報告</span>
+                    <strong>{driverReports.length}</strong>
+                  </div>
+                </div>
+
+                <div className="backup-actions">
+                  <button type="button" onClick={exportBackup}>
+                    バックアップJSONを作成
+                  </button>
+                  <button type="button" onClick={importBackup}>
+                    JSONから復元
+                  </button>
+                </div>
+
+                <p className="backup-message">{backupMessage}</p>
+
+                <label className="backup-editor">
+                  バックアップJSON
+                  <textarea
+                    value={backupText}
+                    onChange={(event) => setBackupText(event.target.value)}
+                    placeholder="バックアップJSONをここに貼り付けると復元できます。"
+                  />
+                </label>
+              </div>
             </section>
           )}
 

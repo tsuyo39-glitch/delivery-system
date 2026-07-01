@@ -394,6 +394,7 @@ export function App() {
         ...createMockPosition(selectedDeliveryId),
         lastSyncedAt: now,
         lastReportedAt: now,
+        history: [{ status: 'not_started', reportedAt: now }],
       },
     ]);
   }, [driverReports, selectedDeliveryId]);
@@ -572,7 +573,13 @@ export function App() {
     setDriverReports((current) =>
       current.map((report) =>
         report.deliveryId === selectedDeliveryId
-          ? { ...report, status, lastReportedAt: now, lastSyncedAt: now }
+          ? {
+              ...report,
+              status,
+              lastReportedAt: now,
+              lastSyncedAt: now,
+              history: [...(report.history ?? []), { status, reportedAt: now }],
+            }
           : report,
       ),
     );
@@ -1358,6 +1365,24 @@ export function App() {
                         <MapPinned aria-hidden="true" size={18} />
                         位置情報を取得
                       </button>
+                    </div>
+
+                    <div className="status-history-panel">
+                      <h3>運行報告履歴</h3>
+                      <div className="status-history-list">
+                        {(selectedDriverReport.history ?? [
+                          {
+                            status: selectedDriverReport.status,
+                            reportedAt: selectedDriverReport.lastReportedAt,
+                          },
+                        ]).map((item, index) => (
+                          <div className="status-history-item" key={`${item.status}-${item.reportedAt}-${index}`}>
+                            <span>{index + 1}</span>
+                            <strong>{statusLabels[item.status]}</strong>
+                            <time>{new Date(item.reportedAt).toLocaleString('ja-JP')}</time>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 ) : (

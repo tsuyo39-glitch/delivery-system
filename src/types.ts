@@ -42,6 +42,12 @@ export type DriverReport = {
   longitude: number;
   lastSyncedAt: string;
   lastReportedAt: string;
+  history?: DriverStatusHistory[];
+};
+
+export type DriverStatusHistory = {
+  status: DeliveryStatus;
+  reportedAt: string;
 };
 
 export type RouteSimulation = {

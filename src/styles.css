@@ -985,6 +985,49 @@ button:focus-visible {
   overflow-wrap: anywhere;
 }
 
+.status-history-panel {
+  border: 1px solid #000080;
+}
+
+.status-history-panel h3 {
+  border-bottom: 1px solid #000080;
+  margin: 0;
+  padding: 12px;
+}
+
+.status-history-list {
+  display: grid;
+}
+
+.status-history-item {
+  display: grid;
+  grid-template-columns: 44px minmax(120px, 1fr) minmax(180px, 1.2fr);
+  align-items: center;
+  border-bottom: 1px solid #000080;
+}
+
+.status-history-item:last-child {
+  border-bottom: 0;
+}
+
+.status-history-item span {
+  display: grid;
+  min-height: 44px;
+  place-items: center;
+  background: #000080;
+  color: #ffffff;
+  font-weight: 900;
+}
+
+.status-history-item strong,
+.status-history-item time {
+  padding: 10px 12px;
+}
+
+.status-history-item strong {
+  border-right: 1px solid #000080;
+}
+
 .status-button-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1110,7 +1153,8 @@ button:focus-visible {
   }
 
   .driver-summary,
-  .status-button-grid {
+  .status-button-grid,
+  .status-history-item {
     grid-template-columns: 1fr;
   }
 }

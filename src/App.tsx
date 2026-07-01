@@ -54,6 +54,7 @@ type DeliveryForm = {
 type TruckForm = Omit<Truck, 'id'>;
 type LocationForm = Omit<Location, 'id'>;
 type ActiveView = 'dashboard' | 'planning' | 'driver' | 'api' | 'trucks' | 'locations';
+type DashboardFilter = 'all' | 'running' | 'completed' | 'weatherRisk';
 type IntegrityIssue = {
   id: string;
   message: string;
@@ -172,6 +173,7 @@ export function App() {
   const [truckForm, setTruckForm] = useState<TruckForm>(() => createDefaultTruckForm());
   const [locationForm, setLocationForm] = useState<LocationForm>(() => createDefaultLocationForm());
   const [activeView, setActiveView] = useState<ActiveView>('dashboard');
+  const [dashboardFilter, setDashboardFilter] = useState<DashboardFilter>('all');
   const [optimizationNote, setOptimizationNote] = useState('ドライバー傾向を加味した推奨順序を生成できます。');
 
   const departureLocations = useMemo(
@@ -276,6 +278,26 @@ export function App() {
       weatherRisk,
     };
   }, [dashboardRows]);
+
+  const filteredDashboardRows = useMemo(
+    () =>
+      dashboardRows.filter((row) => {
+        if (dashboardFilter === 'running') {
+          return row.report.status !== 'not_started' && row.report.status !== 'unloaded';
+        }
+
+        if (dashboardFilter === 'completed') {
+          return row.report.status === 'unloaded';
+        }
+
+        if (dashboardFilter === 'weatherRisk') {
+          return row.simulation?.weatherRisk === '中' || row.simulation?.weatherRisk === '高';
+        }
+
+        return true;
+      }),
+    [dashboardFilter, dashboardRows],
+  );
 
   const integrityIssues = useMemo<IntegrityIssue[]>(() => {
     const issues: IntegrityIssue[] = [];
@@ -803,6 +825,38 @@ export function App() {
                     )}
                   </div>
 
+                  <div className="dashboard-filter-bar" aria-label="運行状況フィルタ">
+                    <button
+                      className={dashboardFilter === 'all' ? 'is-active' : ''}
+                      type="button"
+                      onClick={() => setDashboardFilter('all')}
+                    >
+                      全件
+                    </button>
+                    <button
+                      className={dashboardFilter === 'running' ? 'is-active' : ''}
+                      type="button"
+                      onClick={() => setDashboardFilter('running')}
+                    >
+                      運行中
+                    </button>
+                    <button
+                      className={dashboardFilter === 'completed' ? 'is-active' : ''}
+                      type="button"
+                      onClick={() => setDashboardFilter('completed')}
+                    >
+                      完了
+                    </button>
+                    <button
+                      className={dashboardFilter === 'weatherRisk' ? 'is-active' : ''}
+                      type="button"
+                      onClick={() => setDashboardFilter('weatherRisk')}
+                    >
+                      気象注意
+                    </button>
+                    <span>{filteredDashboardRows.length}件表示</span>
+                  </div>
+
                   <div className="operations-table" role="table" aria-label="運行状況一覧">
                     <div className="operations-row operations-head" role="row">
                       <span>日付</span>
@@ -814,7 +868,7 @@ export function App() {
                       <span>操作</span>
                     </div>
 
-                    {dashboardRows.map((row) => (
+                    {filteredDashboardRows.map((row) => (
                       <div className="operations-row" key={row.delivery.id} role="row">
                         <span>{row.delivery.date}</span>
                         <strong>{row.truck?.driverName ?? '未設定'}</strong>

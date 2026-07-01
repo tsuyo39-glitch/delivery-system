@@ -255,6 +255,33 @@ h3 {
   font-weight: 900;
 }
 
+.dashboard-filter-bar {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(90px, 1fr)) minmax(110px, 0.8fr);
+  border: 1px solid #000080;
+}
+
+.dashboard-filter-bar button,
+.dashboard-filter-bar span {
+  min-height: 44px;
+  border: 0;
+  border-right: 1px solid #000080;
+  background: #ffffff;
+  color: #000080;
+  font-weight: 900;
+}
+
+.dashboard-filter-bar button.is-active {
+  background: #000080;
+  color: #ffffff;
+}
+
+.dashboard-filter-bar span {
+  display: grid;
+  place-items: center;
+  border-right: 0;
+}
+
 .operations-table {
   display: grid;
   border: 1px solid #000080;
@@ -1060,6 +1087,10 @@ button:focus-visible {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .dashboard-filter-bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .api-status-grid,
   .api-signal-layout,
   .api-signal-panel {
@@ -1119,6 +1150,16 @@ button:focus-visible {
 
   .dashboard-metrics {
     grid-template-columns: 1fr;
+  }
+
+  .dashboard-filter-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-filter-bar button,
+  .dashboard-filter-bar span {
+    border-right: 0;
+    border-bottom: 1px solid #000080;
   }
 
   .api-status-grid,

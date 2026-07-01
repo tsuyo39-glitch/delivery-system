@@ -915,6 +915,24 @@ button:focus-visible {
   padding: 16px;
 }
 
+.master-search {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(90px, 120px);
+  gap: 10px;
+  align-items: end;
+  border-bottom: 1px solid #000080;
+  padding: 16px;
+}
+
+.master-search span {
+  display: grid;
+  min-height: 42px;
+  place-items: center;
+  border: 1px solid #000080;
+  color: #000080;
+  font-weight: 900;
+}
+
 .master-row {
   display: grid;
   gap: 8px;
@@ -1194,7 +1212,8 @@ button:focus-visible {
   .truck-master-form,
   .location-master-form,
   .truck-row,
-  .location-row {
+  .location-row,
+  .master-search {
     grid-template-columns: 1fr;
   }
 

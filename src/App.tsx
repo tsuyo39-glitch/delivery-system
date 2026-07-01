@@ -175,6 +175,8 @@ export function App() {
   const [activeView, setActiveView] = useState<ActiveView>('dashboard');
   const [dashboardFilter, setDashboardFilter] = useState<DashboardFilter>('all');
   const [optimizationNote, setOptimizationNote] = useState('ドライバー傾向を加味した推奨順序を生成できます。');
+  const [truckSearch, setTruckSearch] = useState('');
+  const [locationSearch, setLocationSearch] = useState('');
 
   const departureLocations = useMemo(
     () => masterLocations.filter((location) => location.type === 'departure'),
@@ -184,6 +186,32 @@ export function App() {
     () => masterLocations.filter((location) => location.type === 'destination'),
     [masterLocations],
   );
+  const filteredMasterTrucks = useMemo(() => {
+    const keyword = truckSearch.trim().toLowerCase();
+    if (!keyword) {
+      return masterTrucks;
+    }
+
+    return masterTrucks.filter((truck) =>
+      [truck.companyName, truck.driverName, truck.vehicleNumber, String(truck.maxLoadKg), truck.driverKnowledge]
+        .join(' ')
+        .toLowerCase()
+        .includes(keyword),
+    );
+  }, [masterTrucks, truckSearch]);
+  const filteredMasterLocations = useMemo(() => {
+    const keyword = locationSearch.trim().toLowerCase();
+    if (!keyword) {
+      return masterLocations;
+    }
+
+    return masterLocations.filter((location) =>
+      [location.type, location.postalCode, location.address, location.phoneNumber]
+        .join(' ')
+        .toLowerCase()
+        .includes(keyword),
+    );
+  }, [locationSearch, masterLocations]);
 
   const selectedDelivery = deliveries.find((delivery) => delivery.id === selectedDeliveryId);
   const selectedTruck =
@@ -1639,8 +1667,20 @@ export function App() {
             </button>
           </form>
 
+          <div className="master-search">
+            <label>
+              トラック検索
+              <input
+                placeholder="社名・ドライバー名・車番で検索"
+                value={truckSearch}
+                onChange={(event) => setTruckSearch(event.target.value)}
+              />
+            </label>
+            <span>{filteredMasterTrucks.length} / {masterTrucks.length} 件</span>
+          </div>
+
           <div className="master-list">
-            {masterTrucks.map((truck) => {
+            {filteredMasterTrucks.map((truck) => {
               const isReferenced = deliveries.some((delivery) => delivery.truckId === truck.id);
               return (
                 <div className="master-row truck-row" key={truck.id}>
@@ -1759,8 +1799,20 @@ export function App() {
             </button>
           </form>
 
+          <div className="master-search">
+            <label>
+              拠点検索
+              <input
+                placeholder="郵便番号・住所・電話番号で検索"
+                value={locationSearch}
+                onChange={(event) => setLocationSearch(event.target.value)}
+              />
+            </label>
+            <span>{filteredMasterLocations.length} / {masterLocations.length} 件</span>
+          </div>
+
           <div className="master-list">
-            {masterLocations.map((location) => {
+            {filteredMasterLocations.map((location) => {
               const isReferenced =
                 deliveries.some((delivery) => delivery.departureLocationId === location.id) ||
                 deliveryRoutes.some((routeItem) => routeItem.locationId === location.id);

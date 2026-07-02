@@ -12,6 +12,7 @@ import {
   Download,
   Sparkles,
   Plus,
+  Printer,
   Route,
   Save,
   Smartphone,
@@ -1433,6 +1434,72 @@ export function App() {
                   })}
                 </div>
               </div>
+
+              <section className="dispatch-sheet" aria-label="配車指示書">
+                <div className="dispatch-sheet-heading">
+                  <div>
+                    <span>Dispatch Sheet</span>
+                    <h3>配車指示書</h3>
+                  </div>
+                  <button type="button" onClick={() => window.print()}>
+                    <Printer aria-hidden="true" size={18} />
+                    印刷
+                  </button>
+                </div>
+
+                <div className="dispatch-sheet-grid">
+                  <div>
+                    <span>配車日</span>
+                    <strong>{selectedDelivery.date}</strong>
+                  </div>
+                  <div>
+                    <span>社名</span>
+                    <strong>{selectedTruck?.companyName ?? '未設定'}</strong>
+                  </div>
+                  <div>
+                    <span>ドライバー</span>
+                    <strong>{selectedTruck?.driverName ?? '未設定'}</strong>
+                  </div>
+                  <div>
+                    <span>車番</span>
+                    <strong>{selectedTruck?.vehicleNumber ?? '未設定'}</strong>
+                  </div>
+                  <div>
+                    <span>出発地</span>
+                    <strong>{findLocationName(selectedDelivery.departureLocationId, masterLocations)}</strong>
+                  </div>
+                  <div>
+                    <span>配送条件</span>
+                    <strong>
+                      {selectedDelivery.isNightBeforeLoaded ? '宵積みあり' : '宵積みなし'} /{' '}
+                      {selectedDelivery.useExpressway ? '高速利用あり' : '高速利用なし'} /{' '}
+                      {selectedDelivery.bufferMinutes}分バッファ
+                    </strong>
+                  </div>
+                  <div>
+                    <span>想定時間</span>
+                    <strong>{simulation ? formatMinutes(simulation.etaMinutes) : '未計算'}</strong>
+                  </div>
+                  <div>
+                    <span>想定コスト</span>
+                    <strong>{simulation ? `${simulation.costYen.toLocaleString()}円` : '未計算'}</strong>
+                  </div>
+                </div>
+
+                <ol className="dispatch-stop-list">
+                  {selectedRoutes.map((routeItem, index) => (
+                    <li key={`dispatch-${routeItem.id}`}>
+                      <span>{index + 1}</span>
+                      <strong>{findLocationName(routeItem.locationId, masterLocations)}</strong>
+                    </li>
+                  ))}
+                </ol>
+
+                <div className="dispatch-note">
+                  <span>ドライバーナレッジ</span>
+                  <strong>{selectedTruck?.driverKnowledge ?? '未設定'}</strong>
+                </div>
+              </section>
             </>
           ) : (
             <p className="empty-state">配車計画を追加してください。</p>

@@ -922,6 +922,107 @@ button:focus-visible {
   color: #ffffff;
 }
 
+.dispatch-sheet {
+  border: 2px solid #000080;
+  margin: 16px;
+  background: #ffffff;
+}
+
+.dispatch-sheet-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 2px solid #000080;
+  padding: 12px;
+  color: #000080;
+}
+
+.dispatch-sheet-heading span,
+.dispatch-sheet-grid span,
+.dispatch-note span {
+  display: block;
+  color: #000080;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.dispatch-sheet-heading h3 {
+  margin: 3px 0 0;
+}
+
+.dispatch-sheet-heading button {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  gap: 8px;
+  border: 2px solid #000080;
+  background: #000080;
+  color: #ffffff;
+  padding: 8px 12px;
+  font-weight: 900;
+}
+
+.dispatch-sheet-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-bottom: 1px solid #000080;
+}
+
+.dispatch-sheet-grid div {
+  min-height: 72px;
+  border-right: 1px solid #000080;
+  border-bottom: 1px solid #000080;
+  padding: 10px;
+}
+
+.dispatch-sheet-grid div:nth-child(4n) {
+  border-right: 0;
+}
+
+.dispatch-sheet-grid strong,
+.dispatch-note strong {
+  display: block;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+
+.dispatch-stop-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dispatch-stop-list li {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  min-height: 48px;
+  border-bottom: 1px solid #000080;
+}
+
+.dispatch-stop-list li span {
+  display: grid;
+  place-items: center;
+  border-right: 1px solid #000080;
+  background: #000080;
+  color: #ffffff;
+  font-weight: 900;
+}
+
+.dispatch-stop-list li strong {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  overflow-wrap: anywhere;
+}
+
+.dispatch-note {
+  padding: 12px;
+  background: #f7f9ff;
+}
+
 .recommendation {
   border-width: 2px;
   background: #f7f9ff;
@@ -1298,8 +1399,18 @@ button:focus-visible {
   .route-edit-grid,
   .metric-grid,
   .comparison-grid,
-  .optimization-panel {
+  .optimization-panel,
+  .dispatch-sheet-grid {
     grid-template-columns: 1fr;
+  }
+
+  .dispatch-sheet-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .dispatch-sheet-heading button {
+    justify-content: center;
   }
 
   .route-list li {
@@ -1318,5 +1429,50 @@ button:focus-visible {
   .status-button-grid,
   .status-history-item {
     grid-template-columns: 1fr;
+  }
+}
+
+@media print {
+  body {
+    background: #ffffff;
+  }
+
+  .top-bar,
+  .main-menu,
+  .planning-form,
+  .delivery-list,
+  .route-edit-grid,
+  .toggle-row,
+  .optimization-panel,
+  .route-list,
+  .add-stop-row,
+  .map-preview,
+  .comparison-panel,
+  .secondary-button,
+  .dispatch-sheet-heading button,
+  .panel-heading {
+    display: none;
+  }
+
+  .app-shell,
+  .app-body,
+  .view-shell,
+  .workspace,
+  .route-panel,
+  .dispatch-sheet {
+    display: block;
+    min-height: 0;
+    border: 0;
+    margin: 0;
+    padding: 0;
+    background: #ffffff;
+  }
+
+  .dispatch-sheet {
+    border: 2px solid #000080;
+  }
+
+  .dispatch-sheet-heading {
+    display: block;
   }
 }

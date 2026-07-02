@@ -282,6 +282,29 @@ h3 {
   border-right: 0;
 }
 
+.dashboard-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.dashboard-actions button {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 8px;
+  border: 2px solid #000080;
+  background: #000080;
+  color: #ffffff;
+  padding: 10px 14px;
+  font-weight: 900;
+}
+
+.dashboard-actions button:disabled {
+  border-color: #6f6f9f;
+  background: #ffffff;
+  color: #6f6f9f;
+}
+
 .operations-table {
   display: grid;
   border: 1px solid #000080;

@@ -9,6 +9,7 @@ import {
   Navigation,
   CloudSun,
   Database,
+  Download,
   Sparkles,
   Plus,
   Route,
@@ -137,6 +138,11 @@ function createMockPosition(deliveryId: string): Pick<DriverReport, 'latitude' |
     latitude: Number((35.62 + (seed % 38) / 1000).toFixed(6)),
     longitude: Number((139.68 + (seed % 44) / 1000).toFixed(6)),
   };
+}
+
+function escapeCsvValue(value: string | number | boolean | undefined) {
+  const text = String(value ?? '');
+  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
 function createMapPoint(id: string, index: number, total: number) {
@@ -801,6 +807,63 @@ export function App() {
     }
   }
 
+  function exportDashboardCsv() {
+    const headers = [
+      '日付',
+      '社名',
+      'ドライバー',
+      '車番',
+      '出発地',
+      '配送順',
+      'ステータス',
+      'ETA',
+      '高速費',
+      '距離',
+      'GPS',
+      '気象',
+      '高速利用',
+      '宵積み',
+      'バッファ',
+    ];
+
+    const rows = filteredDashboardRows.map((row) => {
+      const routeNames = row.routes
+        .map((routeItem, index) => `${index + 1}. ${findLocationName(routeItem.locationId, masterLocations)}`)
+        .join(' / ');
+
+      return [
+        row.delivery.date,
+        row.truck?.companyName ?? '未設定',
+        row.truck?.driverName ?? '未設定',
+        row.truck?.vehicleNumber ?? '未設定',
+        findLocationName(row.delivery.departureLocationId, masterLocations),
+        routeNames || '未設定',
+        statusLabels[row.report.status],
+        row.simulation ? formatMinutes(row.simulation.etaMinutes) : '未計算',
+        row.simulation ? `${row.simulation.costYen}円` : '未計算',
+        row.simulation ? `${row.simulation.distanceKm}km` : '未計算',
+        `${row.report.latitude}, ${row.report.longitude}`,
+        row.simulation?.weatherRisk ?? '未設定',
+        row.delivery.useExpressway ? 'あり' : 'なし',
+        row.delivery.isNightBeforeLoaded ? 'あり' : 'なし',
+        `${row.delivery.bufferMinutes}分`,
+      ];
+    });
+
+    const csv = [headers, ...rows]
+      .map((row) => row.map((value) => escapeCsvValue(value)).join(','))
+      .join('\r\n');
+    const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `delivery-dashboard-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <main className="app-shell">
       <header className="top-bar">
@@ -964,6 +1027,13 @@ export function App() {
                       気象注意
                     </button>
                     <span>{filteredDashboardRows.length}件表示</span>
+                  </div>
+
+                  <div className="dashboard-actions">
+                    <button type="button" onClick={exportDashboardCsv} disabled={filteredDashboardRows.length === 0}>
+                      <Download aria-hidden="true" size={18} />
+                      <span>表示中のCSVを出力</span>
+                    </button>
                   </div>
 
                   <div className="operations-table" role="table" aria-label="運行状況一覧">

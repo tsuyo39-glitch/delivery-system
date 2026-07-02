@@ -32,12 +32,18 @@ jobs:
         run: npm ci
 
       - name: Build
-        run: npm run build
+        run: npm run build:pages
+
+      - name: Prepare Pages artifact
+        run: |
+          mkdir -p pages
+          cp index.html pages/index.html
+          cp -r docs pages/docs
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: pages
 
   deploy:
     environment:

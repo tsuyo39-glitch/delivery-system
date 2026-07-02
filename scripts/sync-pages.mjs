@@ -1,4 +1,13 @@
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  copyFileSync,
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { resolve, sep } from 'node:path';
 
 const root = resolve('.');
@@ -18,7 +27,13 @@ mkdirSync(target, { recursive: true });
 cpSync(source, target, { recursive: true });
 
 const indexPath = resolve(target, 'index.html');
+const builtAppPath = resolve(target, 'app.html');
+if (existsSync(builtAppPath)) {
+  renameSync(builtAppPath, indexPath);
+}
+
 const html = readFileSync(indexPath, 'utf8').replaceAll('/delivery-system/assets/', '/delivery-system/docs/assets/');
 writeFileSync(indexPath, html);
+copyFileSync(indexPath, resolve(root, 'index.html'));
 
 console.log(`Synced ${source} to ${target}`);

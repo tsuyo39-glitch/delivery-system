@@ -194,6 +194,8 @@ export function App() {
   const [optimizationNote, setOptimizationNote] = useState('ドライバー傾向を加味した推奨順序を生成できます。');
   const [truckSearch, setTruckSearch] = useState('');
   const [locationSearch, setLocationSearch] = useState('');
+  const [deliverySearch, setDeliverySearch] = useState('');
+  const [deliveryDateFilter, setDeliveryDateFilter] = useState('');
   const [backupText, setBackupText] = useState('');
   const [backupMessage, setBackupMessage] = useState('エクスポートまたは復元を実行してください。');
 
@@ -231,6 +233,37 @@ export function App() {
         .includes(keyword),
     );
   }, [locationSearch, masterLocations]);
+  const filteredDeliveries = useMemo(() => {
+    const keyword = deliverySearch.trim().toLowerCase();
+
+    return deliveries.filter((delivery) => {
+      if (deliveryDateFilter && delivery.date !== deliveryDateFilter) {
+        return false;
+      }
+
+      if (!keyword) {
+        return true;
+      }
+
+      const truck = masterTrucks.find((item) => item.id === delivery.truckId);
+      const routeNames = deliveryRoutes
+        .filter((routeItem) => routeItem.deliveryId === delivery.id)
+        .sort((a, b) => a.order - b.order)
+        .map((routeItem) => findLocationName(routeItem.locationId, masterLocations));
+
+      return [
+        delivery.date,
+        truck?.companyName,
+        truck?.driverName,
+        truck?.vehicleNumber,
+        findLocationName(delivery.departureLocationId, masterLocations),
+        ...routeNames,
+      ]
+        .join(' ')
+        .toLowerCase()
+        .includes(keyword);
+    });
+  }, [deliveries, deliveryDateFilter, deliveryRoutes, deliverySearch, masterLocations, masterTrucks]);
 
   const selectedDelivery = deliveries.find((delivery) => delivery.id === selectedDeliveryId);
   const selectedTruck =
@@ -1219,8 +1252,37 @@ export function App() {
             </button>
           </form>
 
+          <div className="delivery-search">
+            <label>
+              配車検索
+              <input
+                value={deliverySearch}
+                onChange={(event) => setDeliverySearch(event.target.value)}
+                placeholder="社名、ドライバー、車番、拠点"
+              />
+            </label>
+            <label>
+              日付
+              <input
+                type="date"
+                value={deliveryDateFilter}
+                onChange={(event) => setDeliveryDateFilter(event.target.value)}
+              />
+            </label>
+            <button
+              type="button"
+              onClick={() => {
+                setDeliverySearch('');
+                setDeliveryDateFilter('');
+              }}
+            >
+              解除
+            </button>
+            <span>{filteredDeliveries.length}件</span>
+          </div>
+
           <div className="delivery-list">
-            {deliveries.map((delivery) => {
+            {filteredDeliveries.map((delivery) => {
               const truck = masterTrucks.find((item) => item.id === delivery.truckId);
               return (
                 <div
@@ -1247,6 +1309,9 @@ export function App() {
                 </div>
               );
             })}
+            {filteredDeliveries.length === 0 && (
+              <p className="delivery-empty">条件に一致する配車計画はありません。</p>
+            )}
           </div>
         </aside>
 

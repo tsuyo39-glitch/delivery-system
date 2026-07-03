@@ -89,6 +89,8 @@ const statusLabels: Record<DeliveryStatus, string> = {
 };
 
 const statusOrder: DeliveryStatus[] = ['departed', 'loaded', 'arrived', 'unloaded'];
+const deliveryStatuses: DeliveryStatus[] = ['not_started', ...statusOrder];
+const locationTypes: LocationType[] = ['departure', 'destination'];
 
 function createId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -96,6 +98,155 @@ function createId(prefix: string): string {
 
 function cloneData<T>(items: T[]): T[] {
   return JSON.parse(JSON.stringify(items)) as T[];
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isString(value: unknown): value is string {
+  return typeof value === 'string';
+}
+
+function isBoolean(value: unknown): value is boolean {
+  return typeof value === 'boolean';
+}
+
+function isNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+function isTruck(value: unknown): value is Truck {
+  return (
+    isRecord(value) &&
+    isString(value.id) &&
+    isString(value.companyName) &&
+    isString(value.driverName) &&
+    isString(value.vehicleNumber) &&
+    isNumber(value.maxLoadKg) &&
+    isString(value.driverKnowledge)
+  );
+}
+
+function isLocation(value: unknown): value is Location {
+  return (
+    isRecord(value) &&
+    isString(value.id) &&
+    locationTypes.includes(value.type as LocationType) &&
+    isString(value.postalCode) &&
+    isString(value.address) &&
+    isString(value.phoneNumber)
+  );
+}
+
+function isDelivery(value: unknown): value is Delivery {
+  return (
+    isRecord(value) &&
+    isString(value.id) &&
+    isString(value.truckId) &&
+    isString(value.departureLocationId) &&
+    isString(value.date) &&
+    isBoolean(value.isNightBeforeLoaded) &&
+    isBoolean(value.useExpressway) &&
+    (value.bufferMinutes === 15 || value.bufferMinutes === 30)
+  );
+}
+
+function isDeliveryRoute(value: unknown): value is DeliveryRoute {
+  return (
+    isRecord(value) &&
+    isString(value.id) &&
+    isString(value.deliveryId) &&
+    isString(value.locationId) &&
+    isNumber(value.order)
+  );
+}
+
+function isDriverReport(value: unknown): value is DriverReport {
+  if (
+    !isRecord(value) ||
+    !isString(value.deliveryId) ||
+    !deliveryStatuses.includes(value.status as DeliveryStatus) ||
+    !isNumber(value.latitude) ||
+    !isNumber(value.longitude) ||
+    !isString(value.lastSyncedAt) ||
+    !isString(value.lastReportedAt)
+  ) {
+    return false;
+  }
+
+  if (value.history === undefined) {
+    return true;
+  }
+
+  return (
+    Array.isArray(value.history) &&
+    value.history.every(
+      (item) =>
+        isRecord(item) &&
+        deliveryStatuses.includes(item.status as DeliveryStatus) &&
+        isString(item.reportedAt),
+    )
+  );
+}
+
+function validateBackupPayload(payload: Partial<BackupPayload>): string | null {
+  if (
+    payload.version !== 1 ||
+    !Array.isArray(payload.trucks) ||
+    !Array.isArray(payload.locations) ||
+    !Array.isArray(payload.deliveries) ||
+    !Array.isArray(payload.deliveryRoutes) ||
+    !Array.isArray(payload.driverReports)
+  ) {
+    return '復元できません。バックアップJSONの形式を確認してください。';
+  }
+
+  if (!payload.trucks.every(isTruck)) {
+    return '復元できません。トラックデータの項目を確認してください。';
+  }
+
+  if (!payload.locations.every(isLocation)) {
+    return '復元できません。拠点データの項目を確認してください。';
+  }
+
+  if (!payload.deliveries.every(isDelivery)) {
+    return '復元できません。配車データの項目を確認してください。';
+  }
+
+  if (!payload.deliveryRoutes.every(isDeliveryRoute)) {
+    return '復元できません。配送順データの項目を確認してください。';
+  }
+
+  if (!payload.driverReports.every(isDriverReport)) {
+    return '復元できません。運行報告データの項目を確認してください。';
+  }
+
+  const truckIds = new Set(payload.trucks.map((truck) => truck.id));
+  const locationIds = new Set(payload.locations.map((location) => location.id));
+  const deliveryIds = new Set(payload.deliveries.map((delivery) => delivery.id));
+
+  if (payload.deliveries.some((delivery) => !truckIds.has(delivery.truckId))) {
+    return '復元できません。存在しないトラックを参照する配車があります。';
+  }
+
+  if (payload.deliveries.some((delivery) => !locationIds.has(delivery.departureLocationId))) {
+    return '復元できません。存在しない出発地を参照する配車があります。';
+  }
+
+  if (payload.deliveryRoutes.some((routeItem) => !deliveryIds.has(routeItem.deliveryId))) {
+    return '復元できません。存在しない配車を参照する配送順があります。';
+  }
+
+  if (payload.deliveryRoutes.some((routeItem) => !locationIds.has(routeItem.locationId))) {
+    return '復元できません。存在しない拠点を参照する配送順があります。';
+  }
+
+  if (payload.driverReports.some((report) => !deliveryIds.has(report.deliveryId))) {
+    return '復元できません。存在しない配車を参照する運行報告があります。';
+  }
+
+  return null;
 }
 
 function createDefaultForm(nextTrucks = initialTrucks, nextLocations = initialLocations): DeliveryForm {
@@ -964,24 +1115,26 @@ export function App() {
   function importBackup() {
     try {
       const payload = JSON.parse(backupText) as Partial<BackupPayload>;
-      if (
-        payload.version !== 1 ||
-        !Array.isArray(payload.trucks) ||
-        !Array.isArray(payload.locations) ||
-        !Array.isArray(payload.deliveries) ||
-        !Array.isArray(payload.deliveryRoutes) ||
-        !Array.isArray(payload.driverReports)
-      ) {
-        setBackupMessage('復元できません。バックアップJSONの形式を確認してください。');
+      const validationMessage = validateBackupPayload(payload);
+
+      if (validationMessage) {
+        setBackupMessage(validationMessage);
         return;
       }
 
-      setMasterTrucks(payload.trucks);
-      setMasterLocations(payload.locations);
-      setDeliveries(payload.deliveries);
-      setDeliveryRoutes(payload.deliveryRoutes);
-      setDriverReports(payload.driverReports);
-      setSelectedDeliveryId(payload.deliveries[0]?.id ?? '');
+      const nextTrucks = payload.trucks as Truck[];
+      const nextLocations = payload.locations as Location[];
+      const nextDeliveries = payload.deliveries as Delivery[];
+      const nextDeliveryRoutes = payload.deliveryRoutes as DeliveryRoute[];
+      const nextDriverReports = payload.driverReports as DriverReport[];
+
+      setMasterTrucks(nextTrucks);
+      setMasterLocations(nextLocations);
+      setDeliveries(nextDeliveries);
+      setDeliveryRoutes(nextDeliveryRoutes);
+      setDriverReports(nextDriverReports);
+      setSelectedDeliveryId(nextDeliveries[0]?.id ?? '');
+      setForm(createDefaultForm(nextTrucks, nextLocations));
       setBackupMessage('バックアップJSONからデータを復元しました。');
     } catch {
       setBackupMessage('JSONを読み込めません。内容を確認してください。');

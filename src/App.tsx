@@ -701,6 +701,10 @@ export function App() {
       return;
     }
 
+    if (selectedRoutes.some((routeItem) => routeItem.locationId === locationId)) {
+      return;
+    }
+
     const nextOrder = selectedRoutes.length + 1;
     const routeItem: DeliveryRoute = {
       id: createId('route'),
@@ -1696,11 +1700,16 @@ export function App() {
                   <option value="" disabled>
                     向け地を追加
                   </option>
-                  {destinationLocations.map((location) => (
-                    <option key={location.id} value={location.id}>
-                      {location.address}
-                    </option>
-                  ))}
+                  {destinationLocations.map((location) => {
+                    const isAlreadyAdded = selectedRoutes.some(
+                      (routeItem) => routeItem.locationId === location.id,
+                    );
+                    return (
+                      <option disabled={isAlreadyAdded} key={location.id} value={location.id}>
+                        {isAlreadyAdded ? `${location.address}（追加済み）` : location.address}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
 

@@ -172,7 +172,7 @@ h3 {
 
 .dashboard-metrics {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -282,7 +282,7 @@ h3 {
 
 .dashboard-filter-bar {
   display: grid;
-  grid-template-columns: repeat(4, minmax(90px, 1fr)) minmax(110px, 0.8fr);
+  grid-template-columns: repeat(5, minmax(90px, 1fr)) minmax(110px, 0.8fr);
   border: 1px solid #000080;
 }
 

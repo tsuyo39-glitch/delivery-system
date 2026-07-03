@@ -58,7 +58,7 @@ type DeliveryForm = {
 type TruckForm = Omit<Truck, 'id'>;
 type LocationForm = Omit<Location, 'id'>;
 type ActiveView = 'dashboard' | 'planning' | 'driver' | 'api' | 'data' | 'trucks' | 'locations';
-type DashboardFilter = 'all' | 'running' | 'completed' | 'weatherRisk';
+type DashboardFilter = 'all' | 'notStarted' | 'running' | 'completed' | 'weatherRisk';
 type BackupPayload = {
   version: 1;
   exportedAt: string;
@@ -356,6 +356,7 @@ export function App() {
   );
 
   const dashboardStats = useMemo(() => {
+    const notStarted = dashboardRows.filter((row) => row.report.status === 'not_started').length;
     const completed = dashboardRows.filter((row) => row.report.status === 'unloaded').length;
     const running = dashboardRows.filter(
       (row) => row.report.status !== 'not_started' && row.report.status !== 'unloaded',
@@ -366,6 +367,7 @@ export function App() {
 
     return {
       total: dashboardRows.length,
+      notStarted,
       running,
       completed,
       weatherRisk,
@@ -379,6 +381,12 @@ export function App() {
       return dashboardRows.filter((row) => {
         if (dashboardDateFilter && row.delivery.date !== dashboardDateFilter) {
           return false;
+        }
+
+        if (dashboardFilter === 'notStarted') {
+          if (row.report.status !== 'not_started') {
+            return false;
+          }
         }
 
         if (dashboardFilter === 'running') {
@@ -1152,6 +1160,10 @@ export function App() {
                       <strong>{dashboardStats.total}</strong>
                     </div>
                     <div>
+                      <span>未出発</span>
+                      <strong>{dashboardStats.notStarted}</strong>
+                    </div>
+                    <div>
                       <span>運行中</span>
                       <strong>{dashboardStats.running}</strong>
                     </div>
@@ -1229,6 +1241,13 @@ export function App() {
                       onClick={() => setDashboardFilter('all')}
                     >
                       全件
+                    </button>
+                    <button
+                      className={dashboardFilter === 'notStarted' ? 'is-active' : ''}
+                      type="button"
+                      onClick={() => setDashboardFilter('notStarted')}
+                    >
+                      未出発
                     </button>
                     <button
                       className={dashboardFilter === 'running' ? 'is-active' : ''}

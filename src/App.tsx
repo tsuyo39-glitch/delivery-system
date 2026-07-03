@@ -4,6 +4,7 @@ import {
   BarChart3,
   CalendarDays,
   ClipboardList,
+  Copy,
   MapPinned,
   MapPin,
   Navigation,
@@ -131,6 +132,16 @@ function formatMinutes(minutes: number): string {
 function findLocationName(locationId: string, masterLocations: Location[]): string {
   const location = masterLocations.find((item) => item.id === locationId);
   return location ? `${location.postalCode} ${location.address}` : '未設定';
+}
+
+function getNextDate(date: string) {
+  const value = new Date(`${date}T00:00:00`);
+  if (Number.isNaN(value.getTime())) {
+    return date;
+  }
+
+  value.setDate(value.getDate() + 1);
+  return value.toISOString().slice(0, 10);
 }
 
 function createMockPosition(deliveryId: string): Pick<DriverReport, 'latitude' | 'longitude'> {
@@ -604,6 +615,46 @@ export function App() {
     if (selectedDeliveryId === deliveryId) {
       setSelectedDeliveryId(remainingDeliveries[0]?.id ?? '');
     }
+  }
+
+  function duplicateDelivery(deliveryId: string) {
+    const sourceDelivery = deliveries.find((delivery) => delivery.id === deliveryId);
+    if (!sourceDelivery) {
+      return;
+    }
+
+    const nextDeliveryId = createId('delivery');
+    const sourceRoutes = deliveryRoutes
+      .filter((routeItem) => routeItem.deliveryId === deliveryId)
+      .sort((a, b) => a.order - b.order);
+    const nextDelivery: Delivery = {
+      ...sourceDelivery,
+      id: nextDeliveryId,
+      date: getNextDate(sourceDelivery.date),
+    };
+    const nextRoutes = sourceRoutes.map((routeItem, index) => ({
+      ...routeItem,
+      id: createId('route'),
+      deliveryId: nextDeliveryId,
+      order: index + 1,
+    }));
+    const now = new Date().toISOString();
+
+    setDeliveries((current) => [nextDelivery, ...current]);
+    setDeliveryRoutes((current) => [...nextRoutes, ...current]);
+    setDriverReports((current) => [
+      {
+        deliveryId: nextDeliveryId,
+        status: 'not_started',
+        ...createMockPosition(nextDeliveryId),
+        lastSyncedAt: now,
+        lastReportedAt: now,
+        history: [{ status: 'not_started', reportedAt: now }],
+      },
+      ...current,
+    ]);
+    setSelectedDeliveryId(nextDeliveryId);
+    setActiveView('planning');
   }
 
   function addDestination(locationId: string) {
@@ -1340,6 +1391,15 @@ export function App() {
                   >
                     <span>{delivery.date}</span>
                     <strong>{truck?.driverName ?? '未設定'}</strong>
+                  </button>
+                  <button
+                    aria-label="配車計画を複製"
+                    className="delivery-copy-button"
+                    title="配車計画を複製"
+                    type="button"
+                    onClick={() => duplicateDelivery(delivery.id)}
+                  >
+                    <Copy aria-hidden="true" size={16} />
                   </button>
                   <button
                     aria-label="配車計画を削除"

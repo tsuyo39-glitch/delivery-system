@@ -749,7 +749,7 @@ button:focus-visible {
 }
 
 .delivery-item:has(.delivery-delete-button) {
-  grid-template-columns: minmax(0, 1fr) 42px;
+  grid-template-columns: minmax(0, 1fr) 42px 42px;
   gap: 0;
   padding: 0;
 }
@@ -765,6 +765,7 @@ button:focus-visible {
   text-align: left;
 }
 
+.delivery-copy-button,
 .delivery-delete-button {
   display: grid;
   min-height: 58px;

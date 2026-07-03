@@ -381,6 +381,7 @@ export function App() {
 
   const integrityIssues = useMemo<IntegrityIssue[]>(() => {
     const issues: IntegrityIssue[] = [];
+    const truckDateAssignments = new Map<string, Delivery[]>();
 
     if (masterTrucks.length === 0) {
       issues.push({
@@ -407,6 +408,9 @@ export function App() {
     }
 
     deliveries.forEach((delivery) => {
+      const truckDateKey = `${delivery.date}-${delivery.truckId}`;
+      truckDateAssignments.set(truckDateKey, [...(truckDateAssignments.get(truckDateKey) ?? []), delivery]);
+
       if (!masterTrucks.some((truck) => truck.id === delivery.truckId)) {
         issues.push({
           id: `${delivery.id}-truck`,
@@ -428,6 +432,7 @@ export function App() {
       const routes = deliveryRoutes
         .filter((routeItem) => routeItem.deliveryId === delivery.id)
         .sort((a, b) => a.order - b.order);
+      const routeLocationCounts = new Map<string, number>();
 
       if (routes.length === 0) {
         issues.push({
@@ -439,6 +444,8 @@ export function App() {
       }
 
       routes.forEach((routeItem, index) => {
+        routeLocationCounts.set(routeItem.locationId, (routeLocationCounts.get(routeItem.locationId) ?? 0) + 1);
+
         if (routeItem.order !== index + 1) {
           issues.push({
             id: `${routeItem.id}-order`,
@@ -456,6 +463,43 @@ export function App() {
             deliveryId: delivery.id,
           });
         }
+
+        if (routeItem.locationId === delivery.departureLocationId) {
+          issues.push({
+            id: `${routeItem.id}-same-departure`,
+            message: `${delivery.date} の配送順に出発地と同じ拠点が含まれています。`,
+            target: 'planning',
+            deliveryId: delivery.id,
+          });
+        }
+      });
+
+      routeLocationCounts.forEach((count, locationId) => {
+        if (count > 1) {
+          issues.push({
+            id: `${delivery.id}-${locationId}-duplicate-stop`,
+            message: `${delivery.date} の配車で同じ向け地が複数回指定されています。`,
+            target: 'planning',
+            deliveryId: delivery.id,
+          });
+        }
+      });
+    });
+
+    truckDateAssignments.forEach((assignedDeliveries) => {
+      if (assignedDeliveries.length < 2) {
+        return;
+      }
+
+      const firstDelivery = assignedDeliveries[0];
+      const truck = masterTrucks.find((item) => item.id === firstDelivery.truckId);
+      issues.push({
+        id: `${firstDelivery.date}-${firstDelivery.truckId}-duplicate-truck`,
+        message: `${firstDelivery.date} に ${truck?.driverName ?? '未設定ドライバー'} / ${
+          truck?.vehicleNumber ?? '車番未設定'
+        } が ${assignedDeliveries.length}件の配車へ割り当てられています。`,
+        target: 'planning',
+        deliveryId: firstDelivery.id,
       });
     });
 
@@ -1004,11 +1048,11 @@ export function App() {
 
                   <div className={integrityIssues.length === 0 ? 'integrity-panel is-clear' : 'integrity-panel'}>
                     <div className="integrity-heading">
-                      <span>データ整合性</span>
+                      <span>データ整合性・割当チェック</span>
                       <strong>{integrityIssues.length === 0 ? '正常' : `${integrityIssues.length}件の確認事項`}</strong>
                     </div>
                     {integrityIssues.length === 0 ? (
-                      <p>配車計画、マスター、配送順序の参照関係に問題はありません。</p>
+                      <p>配車計画、マスター、配送順序、トラック割当の参照関係に問題はありません。</p>
                     ) : (
                       <div className="integrity-list">
                         {integrityIssues.map((issue) => (

@@ -1542,6 +1542,25 @@ export function App() {
 
           {selectedDelivery ? (
             <>
+              <div className="route-summary">
+                <div>
+                  <span>配送件数</span>
+                  <strong>{selectedRoutes.length}件</strong>
+                </div>
+                <div>
+                  <span>想定距離</span>
+                  <strong>{simulation ? `${simulation.distanceKm}km` : '未計算'}</strong>
+                </div>
+                <div>
+                  <span>想定時間</span>
+                  <strong>{simulation ? formatMinutes(simulation.etaMinutes) : '未計算'}</strong>
+                </div>
+                <div>
+                  <span>想定コスト</span>
+                  <strong>{simulation ? `${simulation.costYen.toLocaleString()}円` : '未計算'}</strong>
+                </div>
+              </div>
+
               <div className="route-edit-grid">
                 <label>
                   配車日

@@ -195,6 +195,31 @@ h3 {
   color: #0b1224;
 }
 
+.dashboard-search {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(170px, 0.7fr) minmax(90px, 120px);
+  gap: 8px;
+  border: 1px solid #000080;
+  padding: 10px;
+}
+
+.dashboard-search label {
+  display: grid;
+  gap: 6px;
+  color: #000080;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.dashboard-search button {
+  align-self: end;
+  min-height: 42px;
+  border: 1px solid #000080;
+  background: #ffffff;
+  color: #000080;
+  font-weight: 900;
+}
+
 .integrity-panel {
   border: 2px solid #000080;
   background: #ffffff;
@@ -1351,6 +1376,10 @@ button:focus-visible {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .dashboard-search {
+    grid-template-columns: 1fr;
+  }
+
   .api-status-grid,
   .api-signal-layout,
   .api-signal-panel,
@@ -1414,6 +1443,10 @@ button:focus-visible {
   }
 
   .dashboard-filter-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-search {
     grid-template-columns: 1fr;
   }
 

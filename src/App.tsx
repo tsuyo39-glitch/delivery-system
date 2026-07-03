@@ -202,6 +202,8 @@ export function App() {
   const [locationForm, setLocationForm] = useState<LocationForm>(() => createDefaultLocationForm());
   const [activeView, setActiveView] = useState<ActiveView>('dashboard');
   const [dashboardFilter, setDashboardFilter] = useState<DashboardFilter>('all');
+  const [dashboardSearch, setDashboardSearch] = useState('');
+  const [dashboardDateFilter, setDashboardDateFilter] = useState('');
   const [optimizationNote, setOptimizationNote] = useState('ドライバー傾向を加味した推奨順序を生成できます。');
   const [truckSearch, setTruckSearch] = useState('');
   const [locationSearch, setLocationSearch] = useState('');
@@ -371,23 +373,52 @@ export function App() {
   }, [dashboardRows]);
 
   const filteredDashboardRows = useMemo(
-    () =>
-      dashboardRows.filter((row) => {
+    () => {
+      const keyword = dashboardSearch.trim().toLowerCase();
+
+      return dashboardRows.filter((row) => {
+        if (dashboardDateFilter && row.delivery.date !== dashboardDateFilter) {
+          return false;
+        }
+
         if (dashboardFilter === 'running') {
-          return row.report.status !== 'not_started' && row.report.status !== 'unloaded';
+          if (row.report.status === 'not_started' || row.report.status === 'unloaded') {
+            return false;
+          }
         }
 
         if (dashboardFilter === 'completed') {
-          return row.report.status === 'unloaded';
+          if (row.report.status !== 'unloaded') {
+            return false;
+          }
         }
 
         if (dashboardFilter === 'weatherRisk') {
-          return row.simulation?.weatherRisk === '中' || row.simulation?.weatherRisk === '高';
+          if (row.simulation?.weatherRisk !== '中' && row.simulation?.weatherRisk !== '高') {
+            return false;
+          }
         }
 
-        return true;
-      }),
-    [dashboardFilter, dashboardRows],
+        if (!keyword) {
+          return true;
+        }
+
+        return [
+          row.delivery.date,
+          row.truck?.companyName,
+          row.truck?.driverName,
+          row.truck?.vehicleNumber,
+          findLocationName(row.delivery.departureLocationId, masterLocations),
+          ...row.routes.map((routeItem) => findLocationName(routeItem.locationId, masterLocations)),
+          statusLabels[row.report.status],
+          row.simulation?.weatherRisk,
+        ]
+          .join(' ')
+          .toLowerCase()
+          .includes(keyword);
+      });
+    },
+    [dashboardDateFilter, dashboardFilter, dashboardRows, dashboardSearch, masterLocations],
   );
 
   const integrityIssues = useMemo<IntegrityIssue[]>(() => {
@@ -1095,6 +1126,34 @@ export function App() {
                       <span>気象注意</span>
                       <strong>{dashboardStats.weatherRisk}</strong>
                     </div>
+                  </div>
+
+                  <div className="dashboard-search">
+                    <label>
+                      運行検索
+                      <input
+                        value={dashboardSearch}
+                        onChange={(event) => setDashboardSearch(event.target.value)}
+                        placeholder="社名、ドライバー、車番、拠点、ステータス"
+                      />
+                    </label>
+                    <label>
+                      日付
+                      <input
+                        type="date"
+                        value={dashboardDateFilter}
+                        onChange={(event) => setDashboardDateFilter(event.target.value)}
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDashboardSearch('');
+                        setDashboardDateFilter('');
+                      }}
+                    >
+                      解除
+                    </button>
                   </div>
 
                   <div className={integrityIssues.length === 0 ? 'integrity-panel is-clear' : 'integrity-panel'}>

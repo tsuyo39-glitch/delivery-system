@@ -21,7 +21,12 @@ import {
   Truck as TruckIcon,
 } from 'lucide-react';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { locations as initialLocations, trucks as initialTrucks } from './data';
+import {
+  initialDeliveries,
+  initialDeliveryRoutes,
+  locations as initialLocations,
+  trucks as initialTrucks,
+} from './data';
 import { simulateRoute } from './mockApis';
 import {
   readDeliveries,
@@ -87,6 +92,10 @@ const statusOrder: DeliveryStatus[] = ['departed', 'loaded', 'arrived', 'unloade
 
 function createId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function cloneData<T>(items: T[]): T[] {
+  return JSON.parse(JSON.stringify(items)) as T[];
 }
 
 function createDefaultForm(nextTrucks = initialTrucks, nextLocations = initialLocations): DeliveryForm {
@@ -977,6 +986,32 @@ export function App() {
     } catch {
       setBackupMessage('JSONを読み込めません。内容を確認してください。');
     }
+  }
+
+  function restoreSampleData() {
+    const nextTrucks = cloneData(initialTrucks);
+    const nextLocations = cloneData(initialLocations);
+    const nextDeliveries = cloneData(initialDeliveries);
+    const nextDeliveryRoutes = cloneData(initialDeliveryRoutes);
+    const now = new Date().toISOString();
+    const nextDriverReports: DriverReport[] = nextDeliveries.map((delivery) => ({
+      deliveryId: delivery.id,
+      status: 'not_started',
+      ...createMockPosition(delivery.id),
+      lastSyncedAt: now,
+      lastReportedAt: now,
+      history: [{ status: 'not_started', reportedAt: now }],
+    }));
+
+    setMasterTrucks(nextTrucks);
+    setMasterLocations(nextLocations);
+    setDeliveries(nextDeliveries);
+    setDeliveryRoutes(nextDeliveryRoutes);
+    setDriverReports(nextDriverReports);
+    setSelectedDeliveryId(nextDeliveries[0]?.id ?? '');
+    setForm(createDefaultForm(nextTrucks, nextLocations));
+    setBackupText('');
+    setBackupMessage('初期サンプルデータを復元しました。');
   }
 
   function exportDashboardCsv() {
@@ -2153,6 +2188,9 @@ export function App() {
                   </button>
                   <button type="button" onClick={importBackup}>
                     JSONから復元
+                  </button>
+                  <button type="button" onClick={restoreSampleData}>
+                    サンプルデータを復元
                   </button>
                 </div>
 

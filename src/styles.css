@@ -1017,6 +1017,13 @@ button:focus-visible {
   margin: 3px 0 0;
 }
 
+.dispatch-sheet-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .dispatch-sheet-heading button {
   display: inline-flex;
   min-height: 42px;
@@ -1026,6 +1033,15 @@ button:focus-visible {
   background: #000080;
   color: #ffffff;
   padding: 8px 12px;
+  font-weight: 900;
+}
+
+.route-copy-message {
+  border-bottom: 1px solid #000080;
+  margin: 0;
+  padding: 10px 12px;
+  color: #000080;
+  font-size: 13px;
   font-weight: 900;
 }
 

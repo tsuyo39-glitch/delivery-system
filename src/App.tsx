@@ -371,6 +371,7 @@ export function App() {
   const [deliveryDateFilter, setDeliveryDateFilter] = useState('');
   const [backupText, setBackupText] = useState('');
   const [backupMessage, setBackupMessage] = useState('エクスポートまたは復元を実行してください。');
+  const [routeCopyMessage, setRouteCopyMessage] = useState('選択中の配車計画をJSONでコピーできます。');
 
   const departureLocations = useMemo(
     () => masterLocations.filter((location) => location.type === 'departure'),
@@ -1261,6 +1262,46 @@ export function App() {
     URL.revokeObjectURL(url);
   }
 
+  async function copySelectedDeliveryJson() {
+    if (!selectedDelivery) {
+      setRouteCopyMessage('コピーする配車計画を選択してください。');
+      return;
+    }
+
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      delivery: selectedDelivery,
+      truck: selectedTruck ?? null,
+      departureLocation:
+        masterLocations.find((location) => location.id === selectedDelivery.departureLocationId) ?? null,
+      routes: selectedRoutes.map((routeItem) => ({
+        ...routeItem,
+        location: masterLocations.find((location) => location.id === routeItem.locationId) ?? null,
+      })),
+      simulation,
+    };
+    const text = JSON.stringify(payload, null, 2);
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', 'true');
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        textarea.remove();
+      }
+      setRouteCopyMessage('選択中の配車計画JSONをコピーしました。');
+    } catch {
+      setRouteCopyMessage('コピーできませんでした。ブラウザのクリップボード許可を確認してください。');
+    }
+  }
+
   return (
     <main className="app-shell">
       <header className="top-bar">
@@ -1941,11 +1982,18 @@ export function App() {
                     <span>Dispatch Sheet</span>
                     <h3>配車指示書</h3>
                   </div>
-                  <button type="button" onClick={() => window.print()}>
-                    <Printer aria-hidden="true" size={18} />
-                    印刷
-                  </button>
+                  <div className="dispatch-sheet-actions">
+                    <button type="button" onClick={copySelectedDeliveryJson}>
+                      <Copy aria-hidden="true" size={18} />
+                      JSONコピー
+                    </button>
+                    <button type="button" onClick={() => window.print()}>
+                      <Printer aria-hidden="true" size={18} />
+                      印刷
+                    </button>
+                  </div>
                 </div>
+                <p className="route-copy-message">{routeCopyMessage}</p>
 
                 <div className="dispatch-sheet-grid">
                   <div>

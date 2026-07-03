@@ -578,6 +578,28 @@ h3 {
   gap: 14px;
 }
 
+.planning-warning {
+  display: grid;
+  gap: 8px;
+  border: 2px solid #000080;
+  background: #ffffff;
+  color: #000080;
+  padding: 10px;
+}
+
+.planning-warning strong,
+.planning-warning span {
+  overflow-wrap: anywhere;
+}
+
+.planning-warning button {
+  min-height: 38px;
+  border: 1px solid #000080;
+  background: #000080;
+  color: #ffffff;
+  font-weight: 900;
+}
+
 .master-form {
   display: grid;
   gap: 10px;

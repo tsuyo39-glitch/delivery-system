@@ -448,6 +448,9 @@ export function App() {
   const selectedDriverReport = driverReports.find(
     (report) => report.deliveryId === selectedDeliveryId,
   );
+  const plannedTruckConflict = deliveries.find(
+    (delivery) => delivery.date === form.date && delivery.truckId === form.truckId,
+  );
 
   const simulation = useMemo(() => {
     if (!selectedDelivery || !selectedTruck) {
@@ -1688,6 +1691,19 @@ export function App() {
                 30分
               </button>
             </fieldset>
+
+            {plannedTruckConflict && (
+              <div className="planning-warning">
+                <strong>同じ日付・同じトラックの配車があります。</strong>
+                <span>必要に応じて既存の配車計画を確認してください。</span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedDeliveryId(plannedTruckConflict.id)}
+                >
+                  既存計画を表示
+                </button>
+              </div>
+            )}
 
             <button className="primary-button" type="submit">
               <Plus aria-hidden="true" size={18} />

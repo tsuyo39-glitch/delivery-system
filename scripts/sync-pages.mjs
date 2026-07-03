@@ -34,6 +34,7 @@ if (existsSync(builtAppPath)) {
 
 const html = readFileSync(indexPath, 'utf8').replaceAll('/delivery-system/assets/', '/delivery-system/docs/assets/');
 writeFileSync(indexPath, html);
+writeFileSync(resolve(target, '.nojekyll'), '');
 copyFileSync(indexPath, resolve(root, 'index.html'));
 
 console.log(`Synced ${source} to ${target}`);

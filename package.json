@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --host 127.0.0.1 --open /app.html",
+    "dev": "vite --host 127.0.0.1",
     "build": "tsc && vite build",
     "build:pages": "npm run build && node scripts/sync-pages.mjs",
     "preview": "vite preview --host 127.0.0.1"

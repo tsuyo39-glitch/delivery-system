@@ -1301,7 +1301,31 @@ button:focus-visible {
   border: 1px solid #000080;
 }
 
-.status-history-panel h3 {
+.status-history-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(110px, 140px);
+  border-bottom: 1px solid #000080;
+}
+
+.status-history-heading h3 {
+  margin: 0;
+  padding: 12px;
+}
+
+.status-history-heading button {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 0;
+  border-left: 1px solid #000080;
+  background: #ffffff;
+  color: #000080;
+  font-weight: 900;
+}
+
+.status-history-panel > h3 {
   border-bottom: 1px solid #000080;
   margin: 0;
   padding: 12px;

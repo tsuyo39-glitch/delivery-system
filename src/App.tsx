@@ -1024,6 +1024,43 @@ export function App() {
     URL.revokeObjectURL(url);
   }
 
+  function exportDriverHistoryCsv() {
+    if (!selectedDelivery || !selectedDriverReport) {
+      return;
+    }
+
+    const headers = ['配車日', '社名', 'ドライバー', '車番', 'ステータス', '報告日時', '緯度', '経度'];
+    const history = selectedDriverReport.history ?? [
+      {
+        status: selectedDriverReport.status,
+        reportedAt: selectedDriverReport.lastReportedAt,
+      },
+    ];
+    const rows = history.map((item) => [
+      selectedDelivery.date,
+      selectedTruck?.companyName ?? '未設定',
+      selectedTruck?.driverName ?? '未設定',
+      selectedTruck?.vehicleNumber ?? '未設定',
+      statusLabels[item.status],
+      new Date(item.reportedAt).toLocaleString('ja-JP'),
+      selectedDriverReport.latitude,
+      selectedDriverReport.longitude,
+    ]);
+
+    const csv = [headers, ...rows]
+      .map((row) => row.map((value) => escapeCsvValue(value)).join(','))
+      .join('\r\n');
+    const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `driver-history-${selectedDelivery.date}-${selectedTruck?.driverName ?? 'driver'}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <main className="app-shell">
       <header className="top-bar">
@@ -1914,7 +1951,13 @@ export function App() {
                     </div>
 
                     <div className="status-history-panel">
-                      <h3>運行報告履歴</h3>
+                      <div className="status-history-heading">
+                        <h3>運行報告履歴</h3>
+                        <button type="button" onClick={exportDriverHistoryCsv}>
+                          <Download aria-hidden="true" size={16} />
+                          CSV出力
+                        </button>
+                      </div>
                       <div className="status-history-list">
                         {(selectedDriverReport.history ?? [
                           {

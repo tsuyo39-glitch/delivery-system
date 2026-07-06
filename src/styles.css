@@ -600,6 +600,11 @@ h3 {
   font-weight: 900;
 }
 
+.planning-warning button.is-confirmed {
+  background: #ffffff;
+  color: #000080;
+}
+
 .master-form {
   display: grid;
   gap: 10px;

@@ -372,6 +372,7 @@ export function App() {
   const [backupText, setBackupText] = useState('');
   const [backupMessage, setBackupMessage] = useState('エクスポートまたは復元を実行してください。');
   const [routeCopyMessage, setRouteCopyMessage] = useState('選択中の配車計画をJSONでコピーできます。');
+  const [allowDuplicateTruckAssignment, setAllowDuplicateTruckAssignment] = useState(false);
 
   const departureLocations = useMemo(
     () => masterLocations.filter((location) => location.type === 'departure'),
@@ -778,9 +779,17 @@ export function App() {
     }));
   }, [departureLocations, destinationLocations, masterTrucks]);
 
+  useEffect(() => {
+    setAllowDuplicateTruckAssignment(false);
+  }, [form.date, form.truckId]);
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!form.truckId || !form.departureLocationId || !form.destinationLocationId) {
+      return;
+    }
+
+    if (plannedTruckConflict && !allowDuplicateTruckAssignment) {
       return;
     }
 
@@ -805,6 +814,7 @@ export function App() {
     setDeliveries((current) => [delivery, ...current]);
     setDeliveryRoutes((current) => [nextRoute, ...current]);
     setSelectedDeliveryId(deliveryId);
+    setAllowDuplicateTruckAssignment(false);
   }
 
   function removeDelivery(deliveryId: string) {
@@ -1695,17 +1705,28 @@ export function App() {
             {plannedTruckConflict && (
               <div className="planning-warning">
                 <strong>同じ日付・同じトラックの配車があります。</strong>
-                <span>必要に応じて既存の配車計画を確認してください。</span>
+                <span>既存計画を確認するか、複数便として追加する場合は許可してください。</span>
                 <button
                   type="button"
                   onClick={() => setSelectedDeliveryId(plannedTruckConflict.id)}
                 >
                   既存計画を表示
                 </button>
+                <button
+                  className={allowDuplicateTruckAssignment ? 'is-confirmed' : ''}
+                  type="button"
+                  onClick={() => setAllowDuplicateTruckAssignment((current) => !current)}
+                >
+                  {allowDuplicateTruckAssignment ? '重複追加を許可済み' : '重複を確認して追加を許可'}
+                </button>
               </div>
             )}
 
-            <button className="primary-button" type="submit">
+            <button
+              className="primary-button"
+              disabled={Boolean(plannedTruckConflict && !allowDuplicateTruckAssignment)}
+              type="submit"
+            >
               <Plus aria-hidden="true" size={18} />
               計画を追加
             </button>

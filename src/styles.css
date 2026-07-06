@@ -777,6 +777,11 @@ button:focus-visible {
   font-weight: 900;
 }
 
+.delivery-search button:disabled {
+  background: #f7f9ff;
+  color: #4b5680;
+}
+
 .delivery-search span {
   background: #f7f9ff;
 }

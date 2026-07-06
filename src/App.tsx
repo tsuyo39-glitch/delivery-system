@@ -1238,6 +1238,64 @@ export function App() {
     URL.revokeObjectURL(url);
   }
 
+  function exportFilteredDeliveriesCsv() {
+    const headers = [
+      '配車ID',
+      '日付',
+      '社名',
+      'ドライバー',
+      '車番',
+      '出発地',
+      '配送順',
+      '想定時間',
+      '想定コスト',
+      '高速利用',
+      '宵積み',
+      'バッファ',
+    ];
+
+    const rows = filteredDeliveries.map((delivery) => {
+      const truck = masterTrucks.find((item) => item.id === delivery.truckId);
+      const routes = deliveryRoutes
+        .filter((routeItem) => routeItem.deliveryId === delivery.id)
+        .sort((a, b) => a.order - b.order);
+      const routeNames = routes
+        .map((routeItem, index) => `${index + 1}. ${findLocationName(routeItem.locationId, masterLocations)}`)
+        .join(' / ');
+      const routeSimulation = truck
+        ? simulateRoute({ delivery, routes, locations: masterLocations, truck })
+        : null;
+
+      return [
+        delivery.id,
+        delivery.date,
+        truck?.companyName ?? '未設定',
+        truck?.driverName ?? '未設定',
+        truck?.vehicleNumber ?? '未設定',
+        findLocationName(delivery.departureLocationId, masterLocations),
+        routeNames || '未設定',
+        routeSimulation ? formatMinutes(routeSimulation.etaMinutes) : '未計算',
+        routeSimulation ? `${routeSimulation.costYen}円` : '未計算',
+        delivery.useExpressway ? 'あり' : 'なし',
+        delivery.isNightBeforeLoaded ? 'あり' : 'なし',
+        `${delivery.bufferMinutes}分`,
+      ];
+    });
+
+    const csv = [headers, ...rows]
+      .map((row) => row.map((value) => escapeCsvValue(value)).join(','))
+      .join('\r\n');
+    const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `delivery-plans-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
   function exportDriverHistoryCsv() {
     if (!selectedDelivery || !selectedDriverReport) {
       return;
@@ -1757,6 +1815,9 @@ export function App() {
               }}
             >
               解除
+            </button>
+            <button type="button" onClick={exportFilteredDeliveriesCsv} disabled={filteredDeliveries.length === 0}>
+              CSV出力
             </button>
             <span>{filteredDeliveries.length}件</span>
           </div>

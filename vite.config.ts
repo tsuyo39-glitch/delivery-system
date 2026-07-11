@@ -9,5 +9,5 @@ export default defineConfig({
       input: resolve(__dirname, 'app.html'),
     },
   },
-  plugins: [react],
+  plugins: [react()],
 });

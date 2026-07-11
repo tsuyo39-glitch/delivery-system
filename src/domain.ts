@@ -36,6 +36,28 @@ export function canAddRouteStop(
   );
 }
 
+export function reorderRouteBefore(
+  routes: DeliveryRoute[],
+  draggedRouteId: string,
+  targetRouteId: string,
+): DeliveryRoute[] {
+  const fromIndex = routes.findIndex((routeItem) => routeItem.id === draggedRouteId);
+  const toIndex = routes.findIndex((routeItem) => routeItem.id === targetRouteId);
+  if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) {
+    return routes;
+  }
+
+  const reordered = [...routes];
+  const [draggedRoute] = reordered.splice(fromIndex, 1);
+  const insertionIndex = fromIndex < toIndex ? toIndex - 1 : toIndex;
+  reordered.splice(insertionIndex, 0, draggedRoute);
+
+  return reordered.map((routeItem, index) => ({
+    ...routeItem,
+    order: index + 1,
+  }));
+}
+
 const deliveryStatuses: DeliveryStatus[] = [
   'not_started',
   'departed',

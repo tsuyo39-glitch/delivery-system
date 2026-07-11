@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   canAddRouteStop,
   hasTruckAssignmentConflict,
+  reorderRouteBefore,
   validateBackupPayload,
 } from './domain';
 
@@ -101,5 +102,33 @@ describe('配送順の重複防止', () => {
 
   it('未登録の向け地は追加できる', () => {
     expect(canAddRouteStop(validBackup.deliveryRoutes, 'delivery-1', 'destination-2')).toBe(true);
+  });
+});
+
+describe('配送順の並べ替え', () => {
+  it('先頭の配送先を指定した配送先の直前へ移動し、順序を連番にする', () => {
+    const routes = [
+      { id: 'route-1', deliveryId: 'delivery-1', locationId: 'destination-1', order: 1 },
+      { id: 'route-2', deliveryId: 'delivery-1', locationId: 'destination-2', order: 2 },
+      { id: 'route-3', deliveryId: 'delivery-1', locationId: 'destination-3', order: 3 },
+    ];
+
+    const reordered = reorderRouteBefore(routes, 'route-1', 'route-3');
+
+    expect(reordered.map(({ id, order }) => ({ id, order }))).toEqual([
+      { id: 'route-2', order: 1 },
+      { id: 'route-1', order: 2 },
+      { id: 'route-3', order: 3 },
+    ]);
+  });
+
+  it('存在しない配送順IDが指定された場合は元の順序を維持する', () => {
+    const routes = [
+      { id: 'route-1', deliveryId: 'delivery-1', locationId: 'destination-1', order: 1 },
+      { id: 'route-2', deliveryId: 'delivery-1', locationId: 'destination-2', order: 2 },
+    ];
+
+    expect(reorderRouteBefore(routes, 'missing-route', 'route-2')).toEqual(routes);
+    expect(reorderRouteBefore(routes, 'route-1', 'missing-route')).toEqual(routes);
   });
 });

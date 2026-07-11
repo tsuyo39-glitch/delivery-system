@@ -28,7 +28,12 @@ import {
   trucks as initialTrucks,
 } from './data';
 import { simulateRoute } from './mockApis';
-import { canAddRouteStop, hasTruckAssignmentConflict, validateBackupPayload } from './domain';
+import {
+  canAddRouteStop,
+  hasTruckAssignmentConflict,
+  reorderRouteBefore,
+  validateBackupPayload,
+} from './domain';
 import type { BackupPayload } from './domain';
 import {
   readDeliveries,
@@ -773,18 +778,7 @@ export function App() {
       return;
     }
 
-    const fromIndex = selectedRoutes.findIndex((routeItem) => routeItem.id === draggedRouteId);
-    const toIndex = selectedRoutes.findIndex((routeItem) => routeItem.id === targetRouteId);
-    if (fromIndex < 0 || toIndex < 0) {
-      setDraggedRouteId(null);
-      return;
-    }
-
-    const reordered = [...selectedRoutes];
-    const [draggedRoute] = reordered.splice(fromIndex, 1);
-    const insertionIndex = fromIndex < toIndex ? toIndex - 1 : toIndex;
-    reordered.splice(insertionIndex, 0, draggedRoute);
-
+    const reordered = reorderRouteBefore(selectedRoutes, draggedRouteId, targetRouteId);
     persistSelectedRouteOrder(reordered);
     setDraggedRouteId(null);
   }

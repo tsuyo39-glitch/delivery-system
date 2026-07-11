@@ -747,6 +747,14 @@ export function App() {
     reordered[targetIndex] = reordered[swapIndex];
     reordered[swapIndex] = target;
 
+    persistSelectedRouteOrder(reordered);
+  }
+
+  function persistSelectedRouteOrder(reordered: DeliveryRoute[]) {
+    if (!selectedDeliveryId) {
+      return;
+    }
+
     const normalized = reordered.map((routeItem, index) => ({
       ...routeItem,
       order: index + 1,
@@ -774,18 +782,11 @@ export function App() {
 
     const reordered = [...selectedRoutes];
     const [draggedRoute] = reordered.splice(fromIndex, 1);
-    reordered.splice(toIndex, 0, draggedRoute);
-    const normalized = reordered.map((routeItem, index) => ({
-      ...routeItem,
-      order: index + 1,
-    }));
+    const insertionIndex = fromIndex < toIndex ? toIndex - 1 : toIndex;
+    reordered.splice(insertionIndex, 0, draggedRoute);
 
-    setDeliveryRoutes((current) => [
-      ...current.filter((routeItem) => routeItem.deliveryId !== selectedDeliveryId),
-      ...normalized,
-    ]);
+    persistSelectedRouteOrder(reordered);
     setDraggedRouteId(null);
-    touchDriverSync(selectedDeliveryId);
   }
 
   function removeRouteStop(routeId: string) {

@@ -29,6 +29,13 @@ import {
 } from './data';
 import { simulateRoute } from './mockApis';
 import {
+  canAddRouteStop,
+  hasTruckAssignmentConflict,
+  reorderRouteBefore,
+  validateBackupPayload,
+} from './domain';
+import type { BackupPayload } from './domain';
+import {
   readDeliveries,
   readDeliveryRoutes,
   readDriverReports,
@@ -64,15 +71,6 @@ type TruckForm = Omit<Truck, 'id'>;
 type LocationForm = Omit<Location, 'id'>;
 type ActiveView = 'dashboard' | 'planning' | 'driver' | 'api' | 'data' | 'trucks' | 'locations';
 type DashboardFilter = 'all' | 'notStarted' | 'running' | 'completed' | 'weatherRisk';
-type BackupPayload = {
-  version: 1;
-  exportedAt: string;
-  trucks: Truck[];
-  locations: Location[];
-  deliveries: Delivery[];
-  deliveryRoutes: DeliveryRoute[];
-  driverReports: DriverReport[];
-};
 type IntegrityIssue = {
   id: string;
   message: string;
@@ -90,7 +88,6 @@ const statusLabels: Record<DeliveryStatus, string> = {
 
 const statusOrder: DeliveryStatus[] = ['departed', 'loaded', 'arrived', 'unloaded'];
 const deliveryStatuses: DeliveryStatus[] = ['not_started', ...statusOrder];
-const locationTypes: LocationType[] = ['departure', 'destination'];
 
 function createId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -98,155 +95,6 @@ function createId(prefix: string): string {
 
 function cloneData<T>(items: T[]): T[] {
   return JSON.parse(JSON.stringify(items)) as T[];
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function isString(value: unknown): value is string {
-  return typeof value === 'string';
-}
-
-function isBoolean(value: unknown): value is boolean {
-  return typeof value === 'boolean';
-}
-
-function isNumber(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value);
-}
-
-function isTruck(value: unknown): value is Truck {
-  return (
-    isRecord(value) &&
-    isString(value.id) &&
-    isString(value.companyName) &&
-    isString(value.driverName) &&
-    isString(value.vehicleNumber) &&
-    isNumber(value.maxLoadKg) &&
-    isString(value.driverKnowledge)
-  );
-}
-
-function isLocation(value: unknown): value is Location {
-  return (
-    isRecord(value) &&
-    isString(value.id) &&
-    locationTypes.includes(value.type as LocationType) &&
-    isString(value.postalCode) &&
-    isString(value.address) &&
-    isString(value.phoneNumber)
-  );
-}
-
-function isDelivery(value: unknown): value is Delivery {
-  return (
-    isRecord(value) &&
-    isString(value.id) &&
-    isString(value.truckId) &&
-    isString(value.departureLocationId) &&
-    isString(value.date) &&
-    isBoolean(value.isNightBeforeLoaded) &&
-    isBoolean(value.useExpressway) &&
-    (value.bufferMinutes === 15 || value.bufferMinutes === 30)
-  );
-}
-
-function isDeliveryRoute(value: unknown): value is DeliveryRoute {
-  return (
-    isRecord(value) &&
-    isString(value.id) &&
-    isString(value.deliveryId) &&
-    isString(value.locationId) &&
-    isNumber(value.order)
-  );
-}
-
-function isDriverReport(value: unknown): value is DriverReport {
-  if (
-    !isRecord(value) ||
-    !isString(value.deliveryId) ||
-    !deliveryStatuses.includes(value.status as DeliveryStatus) ||
-    !isNumber(value.latitude) ||
-    !isNumber(value.longitude) ||
-    !isString(value.lastSyncedAt) ||
-    !isString(value.lastReportedAt)
-  ) {
-    return false;
-  }
-
-  if (value.history === undefined) {
-    return true;
-  }
-
-  return (
-    Array.isArray(value.history) &&
-    value.history.every(
-      (item) =>
-        isRecord(item) &&
-        deliveryStatuses.includes(item.status as DeliveryStatus) &&
-        isString(item.reportedAt),
-    )
-  );
-}
-
-function validateBackupPayload(payload: Partial<BackupPayload>): string | null {
-  if (
-    payload.version !== 1 ||
-    !Array.isArray(payload.trucks) ||
-    !Array.isArray(payload.locations) ||
-    !Array.isArray(payload.deliveries) ||
-    !Array.isArray(payload.deliveryRoutes) ||
-    !Array.isArray(payload.driverReports)
-  ) {
-    return '復元できません。バックアップJSONの形式を確認してください。';
-  }
-
-  if (!payload.trucks.every(isTruck)) {
-    return '復元できません。トラックデータの項目を確認してください。';
-  }
-
-  if (!payload.locations.every(isLocation)) {
-    return '復元できません。拠点データの項目を確認してください。';
-  }
-
-  if (!payload.deliveries.every(isDelivery)) {
-    return '復元できません。配車データの項目を確認してください。';
-  }
-
-  if (!payload.deliveryRoutes.every(isDeliveryRoute)) {
-    return '復元できません。配送順データの項目を確認してください。';
-  }
-
-  if (!payload.driverReports.every(isDriverReport)) {
-    return '復元できません。運行報告データの項目を確認してください。';
-  }
-
-  const truckIds = new Set(payload.trucks.map((truck) => truck.id));
-  const locationIds = new Set(payload.locations.map((location) => location.id));
-  const deliveryIds = new Set(payload.deliveries.map((delivery) => delivery.id));
-
-  if (payload.deliveries.some((delivery) => !truckIds.has(delivery.truckId))) {
-    return '復元できません。存在しないトラックを参照する配車があります。';
-  }
-
-  if (payload.deliveries.some((delivery) => !locationIds.has(delivery.departureLocationId))) {
-    return '復元できません。存在しない出発地を参照する配車があります。';
-  }
-
-  if (payload.deliveryRoutes.some((routeItem) => !deliveryIds.has(routeItem.deliveryId))) {
-    return '復元できません。存在しない配車を参照する配送順があります。';
-  }
-
-  if (payload.deliveryRoutes.some((routeItem) => !locationIds.has(routeItem.locationId))) {
-    return '復元できません。存在しない拠点を参照する配送順があります。';
-  }
-
-  if (payload.driverReports.some((report) => !deliveryIds.has(report.deliveryId))) {
-    return '復元できません。存在しない配車を参照する運行報告があります。';
-  }
-
-  return null;
 }
 
 function createDefaultForm(nextTrucks = initialTrucks, nextLocations = initialLocations): DeliveryForm {
@@ -373,6 +221,7 @@ export function App() {
   const [backupMessage, setBackupMessage] = useState('エクスポートまたは復元を実行してください。');
   const [routeCopyMessage, setRouteCopyMessage] = useState('選択中の配車計画をJSONでコピーできます。');
   const [allowDuplicateTruckAssignment, setAllowDuplicateTruckAssignment] = useState(false);
+  const [draggedRouteId, setDraggedRouteId] = useState<string | null>(null);
 
   const departureLocations = useMemo(
     () => masterLocations.filter((location) => location.type === 'departure'),
@@ -449,9 +298,9 @@ export function App() {
   const selectedDriverReport = driverReports.find(
     (report) => report.deliveryId === selectedDeliveryId,
   );
-  const plannedTruckConflict = deliveries.find(
-    (delivery) => delivery.date === form.date && delivery.truckId === form.truckId,
-  );
+  const plannedTruckConflict = hasTruckAssignmentConflict(deliveries, form.date, form.truckId)
+    ? deliveries.find((delivery) => delivery.date === form.date && delivery.truckId === form.truckId)
+    : undefined;
 
   const simulation = useMemo(() => {
     if (!selectedDelivery || !selectedTruck) {
@@ -875,7 +724,7 @@ export function App() {
       return;
     }
 
-    if (selectedRoutes.some((routeItem) => routeItem.locationId === locationId)) {
+    if (!canAddRouteStop(deliveryRoutes, selectedDeliveryId, locationId)) {
       return;
     }
 
@@ -903,6 +752,14 @@ export function App() {
     reordered[targetIndex] = reordered[swapIndex];
     reordered[swapIndex] = target;
 
+    persistSelectedRouteOrder(reordered);
+  }
+
+  function persistSelectedRouteOrder(reordered: DeliveryRoute[]) {
+    if (!selectedDeliveryId) {
+      return;
+    }
+
     const normalized = reordered.map((routeItem, index) => ({
       ...routeItem,
       order: index + 1,
@@ -913,6 +770,17 @@ export function App() {
       ...normalized,
     ]);
     touchDriverSync(selectedDeliveryId);
+  }
+
+  function dropRoute(targetRouteId: string) {
+    if (!selectedDeliveryId || !draggedRouteId || draggedRouteId === targetRouteId) {
+      setDraggedRouteId(null);
+      return;
+    }
+
+    const reordered = reorderRouteBefore(selectedRoutes, draggedRouteId, targetRouteId);
+    persistSelectedRouteOrder(reordered);
+    setDraggedRouteId(null);
   }
 
   function removeRouteStop(routeId: string) {
@@ -1978,9 +1846,27 @@ export function App() {
 
               <ol className="route-list">
                 {selectedRoutes.map((routeItem, index) => (
-                  <li key={routeItem.id}>
+                  <li
+                    aria-label={`${index + 1}番目 ${findLocationName(routeItem.locationId, masterLocations)}`}
+                    className={draggedRouteId === routeItem.id ? 'is-dragging' : undefined}
+                    draggable
+                    key={routeItem.id}
+                    onDragEnd={() => setDraggedRouteId(null)}
+                    onDragOver={(event) => event.preventDefault()}
+                    onDragStart={(event) => {
+                      setDraggedRouteId(routeItem.id);
+                      event.dataTransfer.effectAllowed = 'move';
+                      event.dataTransfer.setData('text/plain', routeItem.id);
+                    }}
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      dropRoute(routeItem.id);
+                    }}
+                  >
                     <div className="route-index">{index + 1}</div>
-                    <div className="route-address">{findLocationName(routeItem.locationId, masterLocations)}</div>
+                    <div className="route-address" title="ドラッグして配送順を変更">
+                      {findLocationName(routeItem.locationId, masterLocations)}
+                    </div>
                     <div className="route-actions">
                       <button
                         aria-label="順序を上げる"

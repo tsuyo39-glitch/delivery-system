@@ -895,6 +895,17 @@ button:focus-visible {
   min-height: 54px;
   border: 1px solid #000080;
   background: #ffffff;
+  cursor: grab;
+}
+
+.route-list li:active {
+  cursor: grabbing;
+}
+
+.route-list li.is-dragging {
+  border-style: dashed;
+  background: #eef1ff;
+  opacity: 0.65;
 }
 
 .route-index {

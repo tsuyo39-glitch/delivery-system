@@ -216,6 +216,7 @@ export function App() {
   const [backupMessage, setBackupMessage] = useState('エクスポートまたは復元を実行してください。');
   const [routeCopyMessage, setRouteCopyMessage] = useState('選択中の配車計画をJSONでコピーできます。');
   const [allowDuplicateTruckAssignment, setAllowDuplicateTruckAssignment] = useState(false);
+  const [draggedRouteId, setDraggedRouteId] = useState<string | null>(null);
 
   const departureLocations = useMemo(
     () => masterLocations.filter((location) => location.type === 'departure'),
@@ -755,6 +756,35 @@ export function App() {
       ...current.filter((routeItem) => routeItem.deliveryId !== selectedDeliveryId),
       ...normalized,
     ]);
+    touchDriverSync(selectedDeliveryId);
+  }
+
+  function dropRoute(targetRouteId: string) {
+    if (!selectedDeliveryId || !draggedRouteId || draggedRouteId === targetRouteId) {
+      setDraggedRouteId(null);
+      return;
+    }
+
+    const fromIndex = selectedRoutes.findIndex((routeItem) => routeItem.id === draggedRouteId);
+    const toIndex = selectedRoutes.findIndex((routeItem) => routeItem.id === targetRouteId);
+    if (fromIndex < 0 || toIndex < 0) {
+      setDraggedRouteId(null);
+      return;
+    }
+
+    const reordered = [...selectedRoutes];
+    const [draggedRoute] = reordered.splice(fromIndex, 1);
+    reordered.splice(toIndex, 0, draggedRoute);
+    const normalized = reordered.map((routeItem, index) => ({
+      ...routeItem,
+      order: index + 1,
+    }));
+
+    setDeliveryRoutes((current) => [
+      ...current.filter((routeItem) => routeItem.deliveryId !== selectedDeliveryId),
+      ...normalized,
+    ]);
+    setDraggedRouteId(null);
     touchDriverSync(selectedDeliveryId);
   }
 
@@ -1821,9 +1851,27 @@ export function App() {
 
               <ol className="route-list">
                 {selectedRoutes.map((routeItem, index) => (
-                  <li key={routeItem.id}>
+                  <li
+                    aria-label={`${index + 1}番目 ${findLocationName(routeItem.locationId, masterLocations)}`}
+                    className={draggedRouteId === routeItem.id ? 'is-dragging' : undefined}
+                    draggable
+                    key={routeItem.id}
+                    onDragEnd={() => setDraggedRouteId(null)}
+                    onDragOver={(event) => event.preventDefault()}
+                    onDragStart={(event) => {
+                      setDraggedRouteId(routeItem.id);
+                      event.dataTransfer.effectAllowed = 'move';
+                      event.dataTransfer.setData('text/plain', routeItem.id);
+                    }}
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      dropRoute(routeItem.id);
+                    }}
+                  >
                     <div className="route-index">{index + 1}</div>
-                    <div className="route-address">{findLocationName(routeItem.locationId, masterLocations)}</div>
+                    <div className="route-address" title="ドラッグして配送順を変更">
+                      {findLocationName(routeItem.locationId, masterLocations)}
+                    </div>
                     <div className="route-actions">
                       <button
                         aria-label="順序を上げる"

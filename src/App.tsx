@@ -301,6 +301,16 @@ export function App() {
   const plannedTruckConflict = hasTruckAssignmentConflict(deliveries, form.date, form.truckId)
     ? deliveries.find((delivery) => delivery.date === form.date && delivery.truckId === form.truckId)
     : undefined;
+  const planningMasterWarnings = [
+    masterTrucks.length === 0 ? { id: 'trucks', label: 'トラックマスターが未登録です。', target: 'trucks' as const } : null,
+    departureLocations.length === 0
+      ? { id: 'departures', label: '出発地マスターが未登録です。', target: 'locations' as const }
+      : null,
+    destinationLocations.length === 0
+      ? { id: 'destinations', label: '向け地マスターが未登録です。', target: 'locations' as const }
+      : null,
+  ].filter((warning): warning is { id: string; label: string; target: 'trucks' | 'locations' } => Boolean(warning));
+  const isPlanningFormBlocked = planningMasterWarnings.length > 0;
 
   const simulation = useMemo(() => {
     if (!selectedDelivery || !selectedTruck) {
@@ -1519,6 +1529,20 @@ export function App() {
           </div>
 
           <form className="planning-form" onSubmit={handleSubmit}>
+            {isPlanningFormBlocked && (
+              <div className="planning-warning">
+                <strong>配車計画に必要なマスターが不足しています。</strong>
+                {planningMasterWarnings.map((warning) => (
+                  <div className="planning-warning-row" key={warning.id}>
+                    <span>{warning.label}</span>
+                    <button type="button" onClick={() => setActiveView(warning.target)}>
+                      登録画面へ移動
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <label>
               日付
               <input
@@ -1650,7 +1674,7 @@ export function App() {
 
             <button
               className="primary-button"
-              disabled={Boolean(plannedTruckConflict && !allowDuplicateTruckAssignment)}
+              disabled={isPlanningFormBlocked || Boolean(plannedTruckConflict && !allowDuplicateTruckAssignment)}
               type="submit"
             >
               <Plus aria-hidden="true" size={18} />

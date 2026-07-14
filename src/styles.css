@@ -592,6 +592,13 @@ h3 {
   overflow-wrap: anywhere;
 }
 
+.planning-warning-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, auto);
+  gap: 8px;
+  align-items: center;
+}
+
 .planning-warning button {
   min-height: 38px;
   border: 1px solid #000080;

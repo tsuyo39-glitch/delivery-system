@@ -29,7 +29,9 @@ import {
 } from './data';
 import { simulateRoute } from './mockApis';
 import {
+  buildDeliveryPlanCsvRows,
   canAddRouteStop,
+  deliveryPlanCsvHeaders,
   getPlanningMasterWarnings,
   hasTruckAssignmentConflict,
   reorderRouteBefore,
@@ -1149,50 +1151,30 @@ export function App() {
   }
 
   function exportFilteredDeliveriesCsv() {
-    const headers = [
-      '配車ID',
-      '日付',
-      '社名',
-      'ドライバー',
-      '車番',
-      '出発地',
-      '配送順',
-      '想定時間',
-      '想定コスト',
-      '高速利用',
-      '宵積み',
-      'バッファ',
-    ];
-
-    const rows = filteredDeliveries.map((delivery) => {
+    const summaries = filteredDeliveries.map((delivery) => {
       const truck = masterTrucks.find((item) => item.id === delivery.truckId);
       const routes = deliveryRoutes
         .filter((routeItem) => routeItem.deliveryId === delivery.id)
         .sort((a, b) => a.order - b.order);
-      const routeNames = routes
-        .map((routeItem, index) => `${index + 1}. ${findLocationName(routeItem.locationId, masterLocations)}`)
-        .join(' / ');
       const routeSimulation = truck
         ? simulateRoute({ delivery, routes, locations: masterLocations, truck })
         : null;
 
-      return [
-        delivery.id,
-        delivery.date,
-        truck?.companyName ?? '未設定',
-        truck?.driverName ?? '未設定',
-        truck?.vehicleNumber ?? '未設定',
-        findLocationName(delivery.departureLocationId, masterLocations),
-        routeNames || '未設定',
-        routeSimulation ? formatMinutes(routeSimulation.etaMinutes) : '未計算',
-        routeSimulation ? `${routeSimulation.costYen}円` : '未計算',
-        delivery.useExpressway ? 'あり' : 'なし',
-        delivery.isNightBeforeLoaded ? 'あり' : 'なし',
-        `${delivery.bufferMinutes}分`,
-      ];
+      return {
+        deliveryId: delivery.id,
+        etaLabel: routeSimulation ? formatMinutes(routeSimulation.etaMinutes) : '未計算',
+        costLabel: routeSimulation ? `${routeSimulation.costYen}円` : '未計算',
+      };
     });
+    const rows = buildDeliveryPlanCsvRows(
+      filteredDeliveries,
+      deliveryRoutes,
+      masterLocations,
+      masterTrucks,
+      summaries,
+    );
 
-    const csv = [headers, ...rows]
+    const csv = [deliveryPlanCsvHeaders, ...rows]
       .map((row) => row.map((value) => escapeCsvValue(value)).join(','))
       .join('\r\n');
     const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' });

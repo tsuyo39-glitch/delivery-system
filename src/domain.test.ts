@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildDeliveryPlanCsvRows,
   canAddRouteStop,
+  deliveryPlanCsvHeaders,
   getPlanningMasterWarnings,
   hasTruckAssignmentConflict,
   reorderRouteBefore,
@@ -123,6 +125,73 @@ describe('配車計画マスター不足の判定', () => {
         label: '出発地マスターが未登録です。',
         target: 'locations',
       },
+    ]);
+  });
+});
+
+describe('配車計画CSV行の生成', () => {
+  it('配送順をorder順に並べ、配車計画CSVの行を生成する', () => {
+    const rows = buildDeliveryPlanCsvRows(
+      validBackup.deliveries,
+      [
+        { id: 'route-2', deliveryId: 'delivery-1', locationId: 'destination-2', order: 2 },
+        { id: 'route-1', deliveryId: 'delivery-1', locationId: 'destination-1', order: 1 },
+      ],
+      [
+        ...validBackup.locations,
+        {
+          id: 'destination-2',
+          type: 'destination',
+          postalCode: '100-0003',
+          address: '東京都千代田区丸の内1-1',
+          phoneNumber: '03-2222-2222',
+        },
+      ],
+      validBackup.trucks,
+      [{ deliveryId: 'delivery-1', etaLabel: '45分', costLabel: '1200円' }],
+    );
+
+    expect(deliveryPlanCsvHeaders).toContain('配送順');
+    expect(rows).toEqual([
+      [
+        'delivery-1',
+        '2026-07-12',
+        '配送株式会社',
+        '配送 太郎',
+        '品川 100 あ 12-34',
+        '100-0001 東京都千代田区千代田1-1',
+        '1. 100-0002 東京都千代田区皇居外苑1-1 / 2. 100-0003 東京都千代田区丸の内1-1',
+        '45分',
+        '1200円',
+        'あり',
+        'なし',
+        '15分',
+      ],
+    ]);
+  });
+
+  it('参照先が不足している場合は未設定または未計算で行を生成する', () => {
+    const rows = buildDeliveryPlanCsvRows(
+      [{ ...validBackup.deliveries[0], truckId: 'missing-truck', departureLocationId: 'missing-location' }],
+      [],
+      validBackup.locations,
+      validBackup.trucks,
+      [],
+    );
+
+    expect(rows[0]).toEqual([
+      'delivery-1',
+      '2026-07-12',
+      '未設定',
+      '未設定',
+      '未設定',
+      '未設定',
+      '未設定',
+      '未計算',
+      '未計算',
+      'あり',
+      'なし',
+      '15分',
     ]);
   });
 });

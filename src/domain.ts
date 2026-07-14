@@ -24,6 +24,27 @@ export type PlanningMasterWarning = {
   target: 'trucks' | 'locations';
 };
 
+export type DeliveryPlanCsvSummary = {
+  deliveryId: string;
+  etaLabel: string;
+  costLabel: string;
+};
+
+export const deliveryPlanCsvHeaders = [
+  '配車ID',
+  '日付',
+  '社名',
+  'ドライバー',
+  '車番',
+  '出発地',
+  '配送順',
+  '想定時間',
+  '想定コスト',
+  '高速利用',
+  '宵積み',
+  'バッファ',
+];
+
 export function hasTruckAssignmentConflict(
   deliveries: Delivery[],
   date: string,
@@ -75,6 +96,45 @@ export function getPlanningMasterWarnings(
   }
 
   return warnings;
+}
+
+export function buildDeliveryPlanCsvRows(
+  deliveries: Delivery[],
+  deliveryRoutes: DeliveryRoute[],
+  locations: Location[],
+  trucks: Truck[],
+  summaries: DeliveryPlanCsvSummary[],
+): string[][] {
+  return deliveries.map((delivery) => {
+    const truck = trucks.find((item) => item.id === delivery.truckId);
+    const summary = summaries.find((item) => item.deliveryId === delivery.id);
+    const routes = deliveryRoutes
+      .filter((routeItem) => routeItem.deliveryId === delivery.id)
+      .sort((a, b) => a.order - b.order);
+    const routeNames = routes
+      .map((routeItem, index) => `${index + 1}. ${findLocationName(routeItem.locationId, locations)}`)
+      .join(' / ');
+
+    return [
+      delivery.id,
+      delivery.date,
+      truck?.companyName ?? '未設定',
+      truck?.driverName ?? '未設定',
+      truck?.vehicleNumber ?? '未設定',
+      findLocationName(delivery.departureLocationId, locations),
+      routeNames || '未設定',
+      summary?.etaLabel ?? '未計算',
+      summary?.costLabel ?? '未計算',
+      delivery.useExpressway ? 'あり' : 'なし',
+      delivery.isNightBeforeLoaded ? 'あり' : 'なし',
+      `${delivery.bufferMinutes}分`,
+    ];
+  });
+}
+
+function findLocationName(locationId: string, locations: Location[]): string {
+  const location = locations.find((item) => item.id === locationId);
+  return location ? `${location.postalCode} ${location.address}` : '未設定';
 }
 
 export function reorderRouteBefore(

@@ -39,7 +39,9 @@ button {
 
 button:disabled {
   cursor: not-allowed;
-  opacity: 0.35;
+  border-color: #4b5680;
+  background: #f7f9ff;
+  color: #4b5680;
 }
 
 .app-shell {
@@ -322,12 +324,6 @@ h3 {
   color: #ffffff;
   padding: 10px 14px;
   font-weight: 900;
-}
-
-.dashboard-actions button:disabled {
-  border-color: #6f6f9f;
-  background: #ffffff;
-  color: #6f6f9f;
 }
 
 .operations-table {
@@ -816,11 +812,6 @@ button:focus-visible {
   background: #ffffff;
   color: #000080;
   font-weight: 900;
-}
-
-.delivery-search button:disabled {
-  background: #f7f9ff;
-  color: #4b5680;
 }
 
 .delivery-search span {

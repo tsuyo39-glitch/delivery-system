@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   canAddRouteStop,
+  getPlanningMasterWarnings,
   hasTruckAssignmentConflict,
   reorderRouteBefore,
   validateBackupPayload,
@@ -102,6 +103,27 @@ describe('配送順の重複防止', () => {
 
   it('未登録の向け地は追加できる', () => {
     expect(canAddRouteStop(validBackup.deliveryRoutes, 'delivery-1', 'destination-2')).toBe(true);
+  });
+});
+
+describe('配車計画マスター不足の判定', () => {
+  it('トラック、出発地、向け地が揃っていれば警告しない', () => {
+    expect(getPlanningMasterWarnings(validBackup.trucks, validBackup.locations)).toEqual([]);
+  });
+
+  it('不足しているマスターだけ警告する', () => {
+    expect(getPlanningMasterWarnings([], [validBackup.locations[1]])).toEqual([
+      {
+        id: 'trucks',
+        label: 'トラックマスターが未登録です。',
+        target: 'trucks',
+      },
+      {
+        id: 'departures',
+        label: '出発地マスターが未登録です。',
+        target: 'locations',
+      },
+    ]);
   });
 });
 

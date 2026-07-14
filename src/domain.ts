@@ -18,6 +18,12 @@ export type BackupPayload = {
   driverReports: DriverReport[];
 };
 
+export type PlanningMasterWarning = {
+  id: string;
+  label: string;
+  target: 'trucks' | 'locations';
+};
+
 export function hasTruckAssignmentConflict(
   deliveries: Delivery[],
   date: string,
@@ -34,6 +40,41 @@ export function canAddRouteStop(
   return !deliveryRoutes.some(
     (routeItem) => routeItem.deliveryId === deliveryId && routeItem.locationId === locationId,
   );
+}
+
+export function getPlanningMasterWarnings(
+  trucks: Truck[],
+  locations: Location[],
+): PlanningMasterWarning[] {
+  const departureLocations = locations.filter((location) => location.type === 'departure');
+  const destinationLocations = locations.filter((location) => location.type === 'destination');
+  const warnings: PlanningMasterWarning[] = [];
+
+  if (trucks.length === 0) {
+    warnings.push({
+      id: 'trucks',
+      label: 'トラックマスターが未登録です。',
+      target: 'trucks',
+    });
+  }
+
+  if (departureLocations.length === 0) {
+    warnings.push({
+      id: 'departures',
+      label: '出発地マスターが未登録です。',
+      target: 'locations',
+    });
+  }
+
+  if (destinationLocations.length === 0) {
+    warnings.push({
+      id: 'destinations',
+      label: '向け地マスターが未登録です。',
+      target: 'locations',
+    });
+  }
+
+  return warnings;
 }
 
 export function reorderRouteBefore(

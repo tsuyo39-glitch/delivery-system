@@ -30,6 +30,7 @@ import {
 import { simulateRoute } from './mockApis';
 import {
   canAddRouteStop,
+  getPlanningMasterWarnings,
   hasTruckAssignmentConflict,
   reorderRouteBefore,
   validateBackupPayload,
@@ -301,15 +302,7 @@ export function App() {
   const plannedTruckConflict = hasTruckAssignmentConflict(deliveries, form.date, form.truckId)
     ? deliveries.find((delivery) => delivery.date === form.date && delivery.truckId === form.truckId)
     : undefined;
-  const planningMasterWarnings = [
-    masterTrucks.length === 0 ? { id: 'trucks', label: 'トラックマスターが未登録です。', target: 'trucks' as const } : null,
-    departureLocations.length === 0
-      ? { id: 'departures', label: '出発地マスターが未登録です。', target: 'locations' as const }
-      : null,
-    destinationLocations.length === 0
-      ? { id: 'destinations', label: '向け地マスターが未登録です。', target: 'locations' as const }
-      : null,
-  ].filter((warning): warning is { id: string; label: string; target: 'trucks' | 'locations' } => Boolean(warning));
+  const planningMasterWarnings = getPlanningMasterWarnings(masterTrucks, masterLocations);
   const isPlanningFormBlocked = planningMasterWarnings.length > 0;
 
   const simulation = useMemo(() => {

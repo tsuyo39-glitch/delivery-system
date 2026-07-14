@@ -72,6 +72,7 @@ type TruckForm = Omit<Truck, 'id'>;
 type LocationForm = Omit<Location, 'id'>;
 type ActiveView = 'dashboard' | 'planning' | 'driver' | 'api' | 'data' | 'trucks' | 'locations';
 type DashboardFilter = 'all' | 'notStarted' | 'running' | 'completed' | 'weatherRisk';
+type PendingRestoreAction = 'backup' | 'sample' | null;
 type IntegrityIssue = {
   id: string;
   message: string;
@@ -220,6 +221,7 @@ export function App() {
   const [deliveryDateFilter, setDeliveryDateFilter] = useState('');
   const [backupText, setBackupText] = useState('');
   const [backupMessage, setBackupMessage] = useState('エクスポートまたは復元を実行してください。');
+  const [pendingRestoreAction, setPendingRestoreAction] = useState<PendingRestoreAction>(null);
   const [routeCopyMessage, setRouteCopyMessage] = useState('選択中の配車計画をJSONでコピーできます。');
   const [allowDuplicateTruckAssignment, setAllowDuplicateTruckAssignment] = useState(false);
   const [draggedRouteId, setDraggedRouteId] = useState<string | null>(null);
@@ -995,6 +997,18 @@ export function App() {
 
     setBackupText(JSON.stringify(payload, null, 2));
     setBackupMessage('現在のデータをJSONとしてエクスポートしました。');
+    setPendingRestoreAction(null);
+  }
+
+  function requestImportBackup() {
+    if (!backupText.trim()) {
+      setBackupMessage('復元するバックアップJSONを入力してください。');
+      setPendingRestoreAction(null);
+      return;
+    }
+
+    setPendingRestoreAction('backup');
+    setBackupMessage('現在のローカルデータをバックアップJSONで置き換えます。内容を確認してから実行してください。');
   }
 
   function importBackup() {
@@ -1004,6 +1018,7 @@ export function App() {
 
       if (validationMessage) {
         setBackupMessage(validationMessage);
+        setPendingRestoreAction(null);
         return;
       }
 
@@ -1021,9 +1036,16 @@ export function App() {
       setSelectedDeliveryId(nextDeliveries[0]?.id ?? '');
       setForm(createDefaultForm(nextTrucks, nextLocations));
       setBackupMessage('バックアップJSONからデータを復元しました。');
+      setPendingRestoreAction(null);
     } catch {
       setBackupMessage('JSONを読み込めません。内容を確認してください。');
+      setPendingRestoreAction(null);
     }
+  }
+
+  function requestRestoreSampleData() {
+    setPendingRestoreAction('sample');
+    setBackupMessage('現在のローカルデータを初期サンプルデータで置き換えます。内容を確認してから実行してください。');
   }
 
   function restoreSampleData() {
@@ -1050,6 +1072,23 @@ export function App() {
     setForm(createDefaultForm(nextTrucks, nextLocations));
     setBackupText('');
     setBackupMessage('初期サンプルデータを復元しました。');
+    setPendingRestoreAction(null);
+  }
+
+  function confirmPendingRestore() {
+    if (pendingRestoreAction === 'backup') {
+      importBackup();
+      return;
+    }
+
+    if (pendingRestoreAction === 'sample') {
+      restoreSampleData();
+    }
+  }
+
+  function cancelPendingRestore() {
+    setPendingRestoreAction(null);
+    setBackupMessage('復元操作を取り消しました。');
   }
 
   function exportDashboardCsv() {
@@ -2388,13 +2427,32 @@ export function App() {
                   <button type="button" onClick={exportBackup}>
                     バックアップJSONを作成
                   </button>
-                  <button type="button" onClick={importBackup}>
+                  <button type="button" onClick={requestImportBackup}>
                     JSONから復元
                   </button>
-                  <button type="button" onClick={restoreSampleData}>
+                  <button type="button" onClick={requestRestoreSampleData}>
                     サンプルデータを復元
                   </button>
                 </div>
+
+                {pendingRestoreAction && (
+                  <div className="restore-confirmation">
+                    <strong>
+                      {pendingRestoreAction === 'backup'
+                        ? 'バックアップJSONから復元します。'
+                        : '初期サンプルデータを復元します。'}
+                    </strong>
+                    <span>現在のブラウザ内データは置き換わります。必要な場合は先にバックアップJSONを作成してください。</span>
+                    <div>
+                      <button type="button" onClick={confirmPendingRestore}>
+                        復元を実行
+                      </button>
+                      <button type="button" onClick={cancelPendingRestore}>
+                        取り消し
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 <p className="backup-message">{backupMessage}</p>
 

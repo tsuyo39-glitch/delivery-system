@@ -518,6 +518,40 @@ h3 {
   font-weight: 900;
 }
 
+.restore-confirmation {
+  display: grid;
+  gap: 10px;
+  border: 2px solid #000080;
+  padding: 12px;
+  background: #ffffff;
+  color: #000080;
+}
+
+.restore-confirmation strong,
+.restore-confirmation span {
+  overflow-wrap: anywhere;
+}
+
+.restore-confirmation div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.restore-confirmation button {
+  min-height: 40px;
+  border: 2px solid #000080;
+  background: #000080;
+  color: #ffffff;
+  padding: 8px 12px;
+  font-weight: 900;
+}
+
+.restore-confirmation button:last-child {
+  background: #ffffff;
+  color: #000080;
+}
+
 .backup-message {
   border: 1px solid #000080;
   margin: 0;

@@ -31,13 +31,14 @@ import { simulateRoute } from './mockApis';
 import {
   buildDeliveryPlanCsvRows,
   canAddRouteStop,
+  createRestoreRequest,
   deliveryPlanCsvHeaders,
   getPlanningMasterWarnings,
   hasTruckAssignmentConflict,
   reorderRouteBefore,
   validateBackupPayload,
 } from './domain';
-import type { BackupPayload } from './domain';
+import type { BackupPayload, RestoreAction } from './domain';
 import {
   readDeliveries,
   readDeliveryRoutes,
@@ -74,7 +75,6 @@ type TruckForm = Omit<Truck, 'id'>;
 type LocationForm = Omit<Location, 'id'>;
 type ActiveView = 'dashboard' | 'planning' | 'driver' | 'api' | 'data' | 'trucks' | 'locations';
 type DashboardFilter = 'all' | 'notStarted' | 'running' | 'completed' | 'weatherRisk';
-type PendingRestoreAction = 'backup' | 'sample' | null;
 type IntegrityIssue = {
   id: string;
   message: string;
@@ -223,7 +223,7 @@ export function App() {
   const [deliveryDateFilter, setDeliveryDateFilter] = useState('');
   const [backupText, setBackupText] = useState('');
   const [backupMessage, setBackupMessage] = useState('エクスポートまたは復元を実行してください。');
-  const [pendingRestoreAction, setPendingRestoreAction] = useState<PendingRestoreAction>(null);
+  const [pendingRestoreAction, setPendingRestoreAction] = useState<RestoreAction | null>(null);
   const [routeCopyMessage, setRouteCopyMessage] = useState('選択中の配車計画をJSONでコピーできます。');
   const [allowDuplicateTruckAssignment, setAllowDuplicateTruckAssignment] = useState(false);
   const [draggedRouteId, setDraggedRouteId] = useState<string | null>(null);
@@ -1003,14 +1003,9 @@ export function App() {
   }
 
   function requestImportBackup() {
-    if (!backupText.trim()) {
-      setBackupMessage('復元するバックアップJSONを入力してください。');
-      setPendingRestoreAction(null);
-      return;
-    }
-
-    setPendingRestoreAction('backup');
-    setBackupMessage('現在のローカルデータをバックアップJSONで置き換えます。内容を確認してから実行してください。');
+    const request = createRestoreRequest('backup', backupText);
+    setPendingRestoreAction(request.pendingAction);
+    setBackupMessage(request.message);
   }
 
   function importBackup() {
@@ -1046,8 +1041,9 @@ export function App() {
   }
 
   function requestRestoreSampleData() {
-    setPendingRestoreAction('sample');
-    setBackupMessage('現在のローカルデータを初期サンプルデータで置き換えます。内容を確認してから実行してください。');
+    const request = createRestoreRequest('sample', backupText);
+    setPendingRestoreAction(request.pendingAction);
+    setBackupMessage(request.message);
   }
 
   function restoreSampleData() {

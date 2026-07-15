@@ -2,12 +2,38 @@ import { describe, expect, it } from 'vitest';
 import {
   buildDeliveryPlanCsvRows,
   canAddRouteStop,
+  createRestoreRequest,
   deliveryPlanCsvHeaders,
   getPlanningMasterWarnings,
   hasTruckAssignmentConflict,
   reorderRouteBefore,
   validateBackupPayload,
 } from './domain';
+
+describe('復元確認フロー', () => {
+  it('バックアップJSONが空の場合は確認待ちにしない', () => {
+    expect(createRestoreRequest('backup', '  \n ')).toEqual({
+      pendingAction: null,
+      message: '復元するバックアップJSONを入力してください。',
+    });
+  });
+
+  it('バックアップJSONが入力済みの場合はバックアップ復元の確認待ちにする', () => {
+    expect(createRestoreRequest('backup', '{"version":1}')).toEqual({
+      pendingAction: 'backup',
+      message:
+        '現在のローカルデータをバックアップJSONで置き換えます。内容を確認してから実行してください。',
+    });
+  });
+
+  it('サンプルデータ復元は入力内容に関係なく確認待ちにする', () => {
+    expect(createRestoreRequest('sample', '')).toEqual({
+      pendingAction: 'sample',
+      message:
+        '現在のローカルデータを初期サンプルデータで置き換えます。内容を確認してから実行してください。',
+    });
+  });
+});
 
 const validBackup = {
   version: 1 as const,

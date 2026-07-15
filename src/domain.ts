@@ -30,6 +30,37 @@ export type DeliveryPlanCsvSummary = {
   costLabel: string;
 };
 
+export type RestoreAction = 'backup' | 'sample';
+
+export type RestoreRequest = {
+  pendingAction: RestoreAction | null;
+  message: string;
+};
+
+export function createRestoreRequest(
+  action: RestoreAction,
+  backupText: string,
+): RestoreRequest {
+  if (action === 'backup' && !backupText.trim()) {
+    return {
+      pendingAction: null,
+      message: '復元するバックアップJSONを入力してください。',
+    };
+  }
+
+  return action === 'backup'
+    ? {
+        pendingAction: 'backup',
+        message:
+          '現在のローカルデータをバックアップJSONで置き換えます。内容を確認してから実行してください。',
+      }
+    : {
+        pendingAction: 'sample',
+        message:
+          '現在のローカルデータを初期サンプルデータで置き換えます。内容を確認してから実行してください。',
+      };
+}
+
 export const deliveryPlanCsvHeaders = [
   '配車ID',
   '日付',
